@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: amigo-secreto-familia-2027
+    runtime: node
+    plan: starter
+    numInstances: 1
+    buildCommand: npm install && npm run build && npm test
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: familia-dados
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/familia.sqlite
+      - key: APP_ORIGIN
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
