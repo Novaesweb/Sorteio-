@@ -7,3 +7,5 @@
 
 /* Branco e violeta, com pequenos acentos vermelhos. */
 .gift-art,.step:nth-child(3) .step-icon,.tiny-flower,.family-proof>svg{color:#b54860}.step:nth-child(2){border-top:2px solid #b75569}.brand-icon{background:#fff}.pointer{background:linear-gradient(90deg,#a63d56,#edb2bd,#b44861)}.wheel-center{border-color:#fff}.wheel-rim{background:linear-gradient(135deg,#b69acf,#fff 35%,#9170af 74%,#e1d0f1)}.promise{background:#f2ecf9}.year,.title-flower,.floating-star{color:#ad4a64}.year span{background:#d8a6b2}
+
+.hero h1.family-title{font-size:clamp(36px,4.7vw,64px);letter-spacing:-1.7px}.brand>span:last-child{font-size:24px}@media(max-width:700px){.hero h1.family-title{font-size:clamp(34px,8.4vw,52px)}.brand>span:last-child{font-size:21px}}

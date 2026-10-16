@@ -1,4 +1,4 @@
-# 🌸 Amigo Secreto da Família — Ano Novo 2027
+# 🌸 Família Ferreira e familiares — Ano Novo 2027
 
 Site React + TypeScript + Tailwind, com backend Node.js e SQLite **exclusivo deste projeto**. Sem Supabase, sem e-mail, sem serviços ou bancos compartilhados com outros sistemas.
 
@@ -37,7 +37,7 @@ O painel usa o código fixo escolhido pelo organizador, validado somente no back
 npm run dev
 ```
 
-Abra http://localhost:5173. O backend usa a porta 3001; o Vite encaminha `/api` automaticamente. Em `/adm`, entre com o código administrativo combinado. Nenhuma senha fixa é fornecida no código.
+Abra http://localhost:5173. O backend usa a porta 3001; o Vite encaminha `/api` automaticamente. Em `/adm`, entre com o código administrativo combinado. O código administrativo fixo é validado no servidor.
 
 ### Uso em família
 
