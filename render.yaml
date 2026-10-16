@@ -20,5 +20,3 @@ services:
         value: /var/data/familia.sqlite
       - key: APP_ORIGIN
         sync: false
-      - key: ADMIN_PASSWORD_HASH
-        sync: false

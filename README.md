@@ -14,10 +14,10 @@ Repositório oficial e único: **https://github.com/Novaesweb/Sorteio-.git**.
 
 - `/sorteio`: roleta com desaceleração, resultado definitivo, comemoração e som opcional sintetizado no navegador.
 - `/meu-resultado`: consulta protegida e download de um arquivo de texto pessoal.
-- `/adm`: painel protegido por senha privada do organizador, contadores, filtros de pendentes/confirmados e atualização automática a cada **5 segundos**.
+- `/adm`: painel protegido pelo código fixo do administrador, contadores, filtros de pendentes/confirmados e atualização automática a cada **5 segundos**.
 - Geração de códigos, substituição de códigos perdidos, sorteio global, consulta restrita de resultados e histórico administrativo.
 - Lembretes abrem o WhatsApp com a mensagem pronta. O organizador escolhe o contato e confirma o envio; o site não envia mensagens automaticamente.
-- Reinício exige a senha administrativa e a frase `INVALIDAR RESULTADOS`.
+- Reinício exige o código administrativo e a frase `INVALIDAR RESULTADOS`.
 - Opção de reduzir animações e respeito à preferência de movimento do dispositivo.
 
 ## Instalação local
@@ -29,16 +29,15 @@ git clone https://github.com/Novaesweb/Sorteio-.git
 cd Sorteio-
 npm install
 cp .env.example .env
-npm run admin:password
 ```
 
-O último comando lê uma senha com entrada oculta e imprime **somente o hash**. Copie a linha `ADMIN_PASSWORD_HASH=...` para `.env`. Use uma senha de pelo menos 12 caracteres. Nunca coloque essa configuração no frontend, em `VITE_*` ou no GitHub.
+O painel usa o código fixo escolhido pelo organizador, validado somente no backend. Não há necessidade de configurar senha nas variáveis de ambiente. O cadastro sempre exibe os 12 nomes, inclusive antes de o servidor responder. Para confirmar e salvar os dados, o backend precisa estar disponível.
 
 ```bash
 npm run dev
 ```
 
-Abra http://localhost:5173. O backend usa a porta 3001; o Vite encaminha `/api` automaticamente. Em `/adm`, entre com a senha que escolheu. Nenhuma senha fixa é fornecida no código.
+Abra http://localhost:5173. O backend usa a porta 3001; o Vite encaminha `/api` automaticamente. Em `/adm`, entre com o código administrativo combinado. Nenhuma senha fixa é fornecida no código.
 
 ### Uso em família
 
@@ -58,7 +57,7 @@ O acesso do participante dura sete dias; o do organizador, oito horas. O código
 - Sorteio uniforme por Fisher–Yates com `crypto.randomInt` e rejeição de permutações com autoatribuição.
 - Códigos aleatórios de 48 bits protegidos por scrypt com sal individual; somente hashes persistem.
 - Sessões aleatórias de 256 bits, hashes no banco, cookies HttpOnly/SameSite=Strict; em produção, Secure e prefixo `__Host-`.
-- Senha administrativa validada no backend; tentativas de login limitadas por endereço de conexão. Se usar proxy, o limite será compartilhado pelas pessoas que saírem pelo mesmo proxy. Para 12 familiares isso é suficiente; aguarde 15 minutos após exceder 60 tentativas.
+- Código administrativo fixo validado por hash no backend; tentativas de login limitadas por endereço de conexão. Se usar proxy, o limite será compartilhado pelas pessoas que saírem pelo mesmo proxy. Para 12 familiares isso é suficiente; aguarde 15 minutos após exceder 60 tentativas.
 - `/api/event` retorna somente os nomes públicos e o estado do evento. O navegador participante nunca recebe os pares completos.
 - `/api/me` não revela destinatário. `/api/reveal` marca e retorna exclusivamente o resultado da sessão; repetir a chamada retorna o mesmo resultado. `/api/result` só funciona após a revelação.
 - Painel e pares completos exigem sessão administrativa. Histórico não registra códigos, senhas nem pares.
@@ -85,8 +84,8 @@ A opção mais simples é servir frontend e backend juntos em uma hospedagem Nod
 1. Conecte **o repositório existente** `Novaesweb/Sorteio-` à hospedagem.
 2. Use Node 24, build `npm install && npm run build && npm test` e inicialização `npm start`.
 3. Monte um disco persistente e defina `DATABASE_PATH=/var/data/familia.sqlite`.
-4. Defina `NODE_ENV=production`, `APP_ORIGIN=https://seu-dominio` (sem barra final) e `ADMIN_PASSWORD_HASH` gerado localmente. `PORT` é fornecido pela hospedagem.
-5. Publique com HTTPS e abra `/adm` para gerar os códigos. Em produção, o servidor se recusa a iniciar sem origem HTTPS e senha configuradas.
+4. Defina `NODE_ENV=production`, `APP_ORIGIN=https://seu-dominio` (sem barra final). `PORT` é fornecido pela hospedagem.
+5. Publique com HTTPS e abra `/adm` para gerar os códigos. Em produção, o servidor se recusa a iniciar sem origem HTTPS configurada.
 
 Nunca use um diretório temporário para os dados em produção. Faça backups privados e regulares. Para copiar o banco com segurança, pare o serviço antes de copiar o arquivo ou utilize a API de backup do SQLite. A cópia isolada de um banco aberto em WAL pode perder alterações recentes.
 
@@ -97,7 +96,7 @@ O `vercel.json` configura build e rotas. **Vercel sozinha não mantém o arquivo
 - Importe o mesmo repositório na Vercel, preset Vite, build `npm run build`, saída `dist`, Node 24.
 - Configure `BACKEND_URL=https://seu-backend` nas variáveis de servidor da Vercel (sem caminho `/api`, sem prefixo `VITE_`).
 - No backend, defina `APP_ORIGIN` com a URL pública da **Vercel**. Use um domínio estável para que a origem continue válida.
-- `api/[...path].mjs` encaminha chamadas e cookies ao backend. O banco continua somente no servidor persistente. Não configure `ADMIN_PASSWORD_HASH` no frontend.
+- `api/[...path].mjs` encaminha chamadas e cookies ao backend. O banco continua somente no servidor persistente.
 
 A hospedagem em um único servidor dispensa esse proxy e é mais simples para este evento.
 
@@ -125,7 +124,7 @@ Não crie outro repositório e não use push forçado. Revise `git diff --cached
 ```text
 src/                  React, componentes, estilos e cliente da API
 server/               HTTP, autenticação, SQLite e sorteio seguro
-scripts/              Desenvolvimento e geração do hash administrativo
+scripts/              Inicialização do ambiente de desenvolvimento
 api/                  Proxy opcional para Vercel
 tests/               Testes de regras e integração (sem dependências)
 render.yaml           Servidor único com disco persistente
@@ -135,4 +134,4 @@ vercel.json           Frontend opcional na Vercel
 
 ## Validação da entrega
 
-Os cinco testes de backend passaram localmente, incluindo 1.000 sorteios aleatórios, controle de acesso, lista fixa de 12 participantes e persistência. A instalação npm e a compilação/validação visual do frontend ainda precisam ser executadas em um ambiente com acesso ao registro npm. O workflow do GitHub também faz essa verificação a cada push. Nenhuma hospedagem foi criada ou publicada e nenhum Supabase foi acessado.
+Os cinco testes de backend passaram localmente, incluindo 1.000 sorteios aleatórios, controle de acesso, lista fixa de 12 participantes e persistência. A compilação do frontend e os testes da versão anterior também passaram no GitHub Actions. O workflow repete essas verificações a cada push. A validação visual em navegador não foi realizada neste ambiente. Nenhuma hospedagem foi criada ou publicada e nenhum Supabase foi acessado.

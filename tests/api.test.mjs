@@ -6,11 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server/app.mjs';
 import { family } from '../server/db.mjs';
-import { hashSecret } from '../server/security.mjs';
 
 test('fluxo completo, autorização, isolamento de resultados e persistência',async()=>{
- const dir=mkdtempSync(join(tmpdir(),'familia-')),databasePath=join(dir,'test.sqlite'),password='Senha de teste privada 2027';
- const config={databasePath,adminHash:hashSecret(password),origin:'http://familia.test'};
+ const dir=mkdtempSync(join(tmpdir(),'familia-')),databasePath=join(dir,'test.sqlite'),password='1803';
+ const config={databasePath,origin:'http://familia.test'};
  const app=createApp(config);
  // Exercise the actual HTTP handler without opening sockets (restricted CI compatible).
  const request=async(path,data,cookie='',origin='http://familia.test')=>new Promise((resolve,reject)=>{
@@ -86,4 +85,4 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   reopened.server.close();reopened.db.close();
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
-test('produção exige HTTPS e senha configurada',()=>{assert.throws(()=>createApp({production:true}));});
+test('produção exige origem HTTPS',()=>{assert.throws(()=>createApp({production:true}));});

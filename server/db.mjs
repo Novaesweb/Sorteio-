@@ -1,7 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-export const family = ['Caíque Eduardo','Estephane','Jéssica Rafaela','Igor','Caio','Rafael','Iris Ferreira','Augusto','Lucas Rodrigo','Camila Dias','Jenifer','Erick'];
+import familyNames from '../shared/participants.json' with { type: 'json' };
+export const family = familyNames;
 export function openDatabase(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);

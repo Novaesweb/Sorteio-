@@ -5,9 +5,10 @@ import { randomBytes } from 'node:crypto';
 import { openDatabase } from './db.mjs';
 import { createDraw } from './draw.mjs';
 import { hashSecret, verifySecret, token, digest } from './security.mjs';
+import { ADMIN_CODE_HASH } from './config.mjs';
 
-export function createApp({ databasePath = './data/familia.sqlite', adminHash = '', origin = '', production = false, dist = 'dist' } = {}) {
-  if (production && (!origin.startsWith('https://') || !adminHash)) throw new Error('Configure APP_ORIGIN HTTPS e ADMIN_PASSWORD_HASH antes de publicar.');
+export function createApp({ databasePath = './data/familia.sqlite', adminHash = ADMIN_CODE_HASH, origin = '', production = false, dist = 'dist' } = {}) {
+  if (production && (!origin.startsWith('https://') || !adminHash)) throw new Error('Configure APP_ORIGIN HTTPS antes de publicar.');
   const db = openDatabase(databasePath), attempts = new Map();
   const now = () => new Date().toISOString();
   const audit = action => db.prepare('INSERT INTO audit(action) VALUES(?)').run(action);
@@ -84,7 +85,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if (req.method === 'POST' && path === '/api/admin/login') {
         limit(req); const input = await body(req);
         if (!adminHash) fail(503, 'O organizador precisa configurar a senha no servidor.');
-        if (!verifySecret(input.password, adminHash)) fail(401, 'Senha incorreta.');
+        if (!verifySecret(input.password, adminHash)) fail(401, 'Código do administrador incorreto.');
         newSession(res, 'admin'); audit('Login do organizador');
         return send(200, { ok:true });
       }
@@ -143,7 +144,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
           }); return send(200, { ok:true });
         }
         if (path === '/api/admin/reset') {
-          if (input.confirmation !== 'INVALIDAR RESULTADOS' || !verifySecret(input.password, adminHash)) fail(400, 'Digite INVALIDAR RESULTADOS e confirme a senha administrativa.');
+          if (input.confirmation !== 'INVALIDAR RESULTADOS' || !verifySecret(input.password, adminHash)) fail(400, 'Digite INVALIDAR RESULTADOS e confirme o código do administrador.');
           transaction(() => {
             db.exec("DELETE FROM pairs; UPDATE settings SET started_at=NULL WHERE id=1; UPDATE participants SET revealed_at=NULL; DELETE FROM sessions WHERE role='participant'");
             audit('Sorteio reiniciado: resultados e sessões anteriores invalidados');
