@@ -9,5 +9,6 @@ jobs:
         with:
           node-version: '24'
       - run: npm install
+      - run: node --input-type=module -e "import('./api/[...path].mjs')"
       - run: npm test
       - run: npm run build

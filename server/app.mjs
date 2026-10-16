@@ -9,7 +9,7 @@ import { ADMIN_CODE_HASH } from './config.mjs';
 
 export function createApp({ databasePath = './data/familia.sqlite', adminHash = ADMIN_CODE_HASH, origin = '', production = false, dist = 'dist' } = {}) {
   if (production && (!origin.startsWith('https://') || !adminHash)) throw new Error('Configure APP_ORIGIN HTTPS antes de publicar.');
-  const db = openDatabase(databasePath), attempts = new Map();
+  const db = openDatabase(databasePath);
   const now = () => new Date().toISOString();
   const audit = action => db.prepare('INSERT INTO audit(action) VALUES(?)').run(action);
   const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
@@ -31,11 +31,12 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
     return row;
   }
   function limit(req) {
-    const key = req.socket.remoteAddress, time = Date.now();
-    if (attempts.size > 10000) for (const [k,v] of attempts) if (v.until < time) attempts.delete(k);
-    const item = attempts.get(key);
-    if (!item || item.until < time) attempts.set(key, { count: 1, until: time + 15 * 60 * 1000 });
-    else if (++item.count > 60) fail(429, 'Muitas tentativas. Aguarde 15 minutos.');
+    const key = digest(String(req.socket.remoteAddress || 'unknown')), time = Date.now();
+    db.prepare('DELETE FROM login_attempts WHERE expires<?').run(time);
+    db.prepare(`INSERT INTO login_attempts(key,count,expires) VALUES(?,1,?)
+      ON CONFLICT(key) DO UPDATE SET count=count+1`).run(key,time+15*60*1000);
+    const item=db.prepare('SELECT count FROM login_attempts WHERE key=?').get(key);
+    if(item.count>60) fail(429,'Muitas tentativas. Aguarde 15 minutos.');
   }
   async function body(req) {
     if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Envie os dados em JSON.');

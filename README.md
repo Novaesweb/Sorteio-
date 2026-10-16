@@ -1,137 +1,154 @@
 # 🌸 Família Ferreira e familiares — Ano Novo 2027
 
-Site React + TypeScript + Tailwind, com backend Node.js e SQLite **exclusivo deste projeto**. Sem Supabase, sem e-mail, sem serviços ou bancos compartilhados com outros sistemas.
+Site React + TypeScript + Tailwind com roleta, cadastro por código e painel administrativo. Roxo, vermelho e branco. **Sem Supabase e sem servidor externo obrigatório.**
 
-Repositório oficial e único: **https://github.com/Novaesweb/Sorteio-.git**.
+Repositório único: https://github.com/Novaesweb/Sorteio-.git.
 
-## O que está implementado
+## Publicar somente na Vercel
 
-- Página inicial floral em roxo, vermelho e branco, mobile-first, roleta com nomes, pétalas, brilhos e faixa de presentes de **R$ 40,00 a R$ 70,00** para todos.
-- Cadastro por nome e código individual, sem senha de participante. O código confirma o cadastro e permite consultar de outro celular.
-- Lista fixa com somente os 12 nomes solicitados, criada automaticamente no primeiro uso. Não é possível adicionar ou remover participantes.
+A API agora roda em uma Vercel Function. **Não configure `BACKEND_URL`**: essa variável não é mais utilizada.
 
-  Caíque Eduardo, Estephane, Jéssica Rafaela, Igor, Caio, Rafael, Iris Ferreira, Augusto, Lucas Rodrigo, Camila Dias, Jenifer e Erick.
+O armazenamento precisa ser ativado uma vez na sua conta para que cadastros e resultados permaneçam salvos entre celulares e publicações:
 
-- `/sorteio`: roleta com desaceleração, resultado definitivo, comemoração e som opcional sintetizado no navegador.
-- `/meu-resultado`: consulta protegida e download de um arquivo de texto pessoal.
-- `/adm`: painel protegido pelo código fixo do administrador, contadores, filtros de pendentes/confirmados e atualização automática a cada **5 segundos**.
-- Geração de códigos, substituição de códigos perdidos, sorteio global, consulta restrita de resultados e histórico administrativo.
-- Lembretes abrem o WhatsApp com a mensagem pronta. O organizador escolhe o contato e confirma o envio; o site não envia mensagens automaticamente.
-- Reinício exige o código administrativo e a frase `INVALIDAR RESULTADOS`.
-- Opção de reduzir animações e respeito à preferência de movimento do dispositivo.
+1. Abra o projeto na Vercel.
+2. Em **Storage**, escolha **Create Storage → Blob**.
+3. Escolha acesso **Private** e dê um nome exclusivo, por exemplo `familia-ferreira-2027`.
+4. Conecte o Blob **somente a este projeto**, ao ambiente **Production**. Mantenha o prefixo padrão da variável (`BLOB_READ_WRITE_TOKEN`). Se quiser testar Preview, também pode conectar esse ambiente; o código separa seus dados dos de produção.
+5. Em **Deployments**, faça **Redeploy** da versão mais recente de `main`.
+6. Abra `/adm` e entre com o código administrativo definido pelo organizador. Gere e distribua os códigos individuais.
 
-## Instalação local
+Se o Blob já existe, abra a aba **Projects** do armazenamento e use **Connect to Project**. Use um store privado; um store público não serve para guardar códigos e resultados.
 
-É necessário **Node.js 24 ou superior** (SQLite integrado ao Node, sem instalação de banco separada).
+A Vercel adiciona as credenciais na configuração de servidor automaticamente. Não cole tokens no código, no GitHub ou em variáveis com prefixo `VITE_`. SDKs atuais também podem usar a conexão OIDC gerenciada pela Vercel.
+
+Referência: [criar e conectar um Blob](https://vercel.com/docs/vercel-blob/using-blob-sdk#getting-started). O armazenamento segue os limites e condições de uso do seu plano da Vercel; nenhuma assinatura ou contratação foi feita automaticamente por este projeto.
+
+Configurações do projeto:
+
+- Framework: **Vite**.
+- Node: **24.x**.
+- Build: `npm run build`.
+- Output: `dist`.
+- Root directory: raiz do repositório.
+- Não use `npm start` como build ou startup na Vercel; a função em `api/` é publicada automaticamente.
+
+Até conectar o Blob, os 12 nomes aparecem normalmente, mas o site informa que os cadastros ainda não estão liberados. Ele não finge salvar dados.
+
+## Família: lista fixa
+
+Somente estes nomes participam; não há opção de adicionar ou remover:
+
+1. Caíque Eduardo
+2. Estephane
+3. Jéssica Rafaela
+4. Igor
+5. Caio
+6. Rafael
+7. Iris Ferreira
+8. Augusto
+9. Lucas Rodrigo
+10. Camila Dias
+11. Jenifer
+12. Erick
+
+A lista única fica em `shared/participants.json`, usada no frontend e no servidor. Os nomes aparecem no cadastro antes de qualquer resposta da API. Na confirmação, o servidor confere o nome e o código.
+
+## Como organizar
+
+1. Entre em `/adm` com o código administrativo combinado. O hash do código é validado no servidor, não no navegador.
+2. Clique em **Gerar códigos pendentes**. Copie e guarde a lista: cada código individual aparece apenas nessa geração.
+3. Envie cada código somente ao dono do respectivo nome. Não compartilhe a lista completa com o grupo.
+4. Os familiares escolhem o nome, informam o código e confirmam o cadastro. Não precisam de e-mail nem senha própria.
+5. Acompanhe os filtros **Todos**, **Pendentes** e **Confirmados** no painel. A atualização ocorre a cada cinco segundos.
+6. Clique em **Iniciar sorteio** para gerar os 12 pares juntos. Todos os nomes entram, mesmo os que ainda não confirmaram; eles poderão entrar depois.
+7. Cada pessoa gira a roleta para revelar somente seu resultado. Girar ou consultar novamente não muda o destinatário.
+
+Os presentes têm o mesmo intervalo para todos: **R$ 40,00 a R$ 70,00**.
+
+O painel mostra quem confirmou, quem falta, quem já girou e quem revelou o resultado. Também permite:
+
+- Substituir um código perdido: invalida o código e as sessões anteriores, preservando o resultado.
+- Consultar pares completos em área restrita.
+- Abrir WhatsApp com mensagem pronta para os pendentes. O organizador escolhe o contato e confirma o envio.
+- Reiniciar com o código administrativo e a frase `INVALIDAR RESULTADOS`. Isso remove resultados e sessões dos participantes, preservando códigos e confirmações. Avise a família: resultados já vistos ou baixados não podem ser apagados dos celulares.
+
+## Páginas
+
+- `/`: apresentação, regras e cadastro.
+- `/sorteio`: revelação pela roleta.
+- `/meu-resultado`: consulta protegida e download pessoal.
+- `/adm`: acesso e painel do organizador.
+
+Há som opcional, pétalas, confetes e opção de reduzir animações. As preferências de movimento do dispositivo são respeitadas.
+
+## Persistência e privacidade na Vercel
+
+A função carrega uma cópia SQLite temporária em `/tmp`, processa a operação e salva uma **cópia completa em Blob privado** quando há alterações. `/tmp` é apenas uma área de trabalho; a fonte persistente é o Blob, não o disco da função.
+
+Esse formato atende o evento de 12 pessoas. Não é uma arquitetura indicada para um sistema grande com muitos escritores. Cada alteração usa o ETag da versão lida: se outra pessoa salvou antes, o servidor relê o estado e repete a operação, sem sobrescrever o cadastro anterior. A primeira criação também é exclusiva. Leituras usam `useCache: false` para enxergar as alterações já salvas.
+
+A resposta de sucesso, códigos e cookies só saem **depois** que a gravação persistente termina. Falhas de armazenamento não são apresentadas como confirmação de cadastro. Consultas não regravam o arquivo. Se muitas operações disputarem a mesma versão, a API pede que a pessoa tente novamente, preservando o estado.
+
+Arquivos de produção e preview são separados. Production usa `familia-ferreira/2027/production.sqlite`; Preview usa um caminho separado por branch. Não conecte outro projeto ao mesmo store. Ao mudar de conta, projeto ou store, migre os dados explicitamente; redeploy sozinho não migra arquivos entre stores diferentes.
+
+- Códigos individuais aleatórios de 48 bits, com hash scrypt e sal.
+- Sessões de 256 bits; apenas hashes no banco. Cookies HttpOnly/SameSite=Strict e Secure na Vercel.
+- Sessão administrativa: oito horas. Participante: sete dias; o código permite entrar em outro celular.
+- Limite de 60 tentativas por endereço em 15 minutos, persistido inclusive entre execuções independentes.
+- SQL parametrizado, transações, chaves estrangeiras e restrições de unicidade.
+- Fisher–Yates com `crypto.randomInt` e rejeição de autoatribuições.
+- `/api/event` retorna somente nomes e estado do evento; `/api/me` não inclui destinatário.
+- `/api/reveal` e `/api/result` retornam apenas o par da sessão autenticada. Os pares completos exigem sessão administrativa.
+- O arquivo Blob e os tokens nunca são retornados aos participantes. Não há rota pública de download do banco.
+
+O administrador usa um código fixo de quatro dígitos conforme solicitado pelo organizador. Ele permite acesso a todos os resultados; mantenha-o restrito. Os códigos dos familiares são separados desse código administrativo.
+
+As tabelas e alterações de esquema são inicializadas em `server/db.mjs`. Não existem integração, banco ou políticas Supabase neste projeto.
+
+## Desenvolvimento local
+
+Node.js 24:
 
 ```bash
 git clone https://github.com/Novaesweb/Sorteio-.git
 cd Sorteio-
 npm install
 cp .env.example .env
-```
-
-O painel usa o código fixo escolhido pelo organizador, validado somente no backend. Não há necessidade de configurar senha nas variáveis de ambiente. O cadastro sempre exibe os 12 nomes, inclusive antes de o servidor responder. Para confirmar e salvar os dados, o backend precisa estar disponível.
-
-```bash
 npm run dev
 ```
 
-Abra http://localhost:5173. O backend usa a porta 3001; o Vite encaminha `/api` automaticamente. Em `/adm`, entre com o código administrativo combinado. O código administrativo fixo é validado no servidor.
-
-### Uso em família
-
-1. Antes de compartilhar o site, entre em `/adm` e confira os nomes.
-2. Clique em **Gerar códigos pendentes**. Copie e guarde a lista em local privado: cada código aparece em texto somente na geração.
-3. Distribua **cada código apenas ao dono do nome**, pelo canal que preferir. Não envie a lista completa ao grupo.
-4. Cada familiar escolhe o nome, digita o código e confirma o cadastro. O painel indica quem ainda não confirmou.
-5. Quando quiser liberar as revelações, clique em **Iniciar sorteio**. Não é necessário que todos já tenham se cadastrado; todos os nomes da lista entram no sorteio e podem confirmar depois.
-6. Os pares são criados juntos no servidor. Cada pessoa gira a roleta uma vez para revelar apenas seu próprio resultado.
-7. Quem perdeu o código pode receber um **Novo código** pelo painel. Isso invalida o código e as sessões anteriores, preservando cadastro e resultado.
-
-O acesso do participante dura sete dias; o do organizador, oito horas. O código permite entrar novamente. Compartilhar o código permite acesso ao resultado; ele deve ser mantido privado.
-
-## Dados e proteção
-
-- SQLite em `DATABASE_PATH`, com transações, chaves estrangeiras e restrições `UNIQUE`/`CHECK` para impedir destinatários duplicados e autoatribuição.
-- Sorteio uniforme por Fisher–Yates com `crypto.randomInt` e rejeição de permutações com autoatribuição.
-- Códigos aleatórios de 48 bits protegidos por scrypt com sal individual; somente hashes persistem.
-- Sessões aleatórias de 256 bits, hashes no banco, cookies HttpOnly/SameSite=Strict; em produção, Secure e prefixo `__Host-`.
-- Código administrativo fixo validado por hash no backend; tentativas de login limitadas por endereço de conexão. Se usar proxy, o limite será compartilhado pelas pessoas que saírem pelo mesmo proxy. Para 12 familiares isso é suficiente; aguarde 15 minutos após exceder 60 tentativas.
-- `/api/event` retorna somente os nomes públicos e o estado do evento. O navegador participante nunca recebe os pares completos.
-- `/api/me` não revela destinatário. `/api/reveal` marca e retorna exclusivamente o resultado da sessão; repetir a chamada retorna o mesmo resultado. `/api/result` só funciona após a revelação.
-- Painel e pares completos exigem sessão administrativa. Histórico não registra códigos, senhas nem pares.
-- Reiniciar remove os pares, datas de revelação e sessões dos participantes; preserva os códigos e cadastros. Arquivos já baixados e resultados já vistos não podem ser apagados dos celulares: avise a família sobre a invalidação.
-- O arquivo do banco é privado e fica fora de `dist`. `.env` e `data/` são ignorados pelo Git.
-
-O banco é criado e migrado automaticamente em `server/db.mjs`; não existem migrations, Auth ou RLS do Supabase nesta versão, por solicitação de simplificação. Use **uma única instância** do backend com disco persistente. Não execute cópias independentes com bancos diferentes.
-
-## Verificação
+Abra http://localhost:5173. O Vite encaminha `/api` ao backend local, porta 3001. Localmente o SQLite é salvo em `data/`, ignorado pelo Git, sem precisar de Blob nem credenciais externas.
 
 ```bash
 npm test
 npm run build
 ```
 
-Os testes não dependem de rede, contas externas nem dependências npm. Verificam 1.000 sorteios em tamanhos diferentes, autenticação, isolamento, repetição da revelação, acesso em outro celular, rotação do código, lista fixa com os 12 nomes originais, reinício e persistência ao reabrir o banco. A API é testada pelo handler HTTP real em memória, sem abrir portas.
+Os testes cobrem 1.000 sorteios, códigos, sessões, pares privados, reinício, lista fixa, persistência entre execuções, 12 cadastros e revelações simultâneos, tentativas de login, falha no armazenamento e controle de versão. O store é simulado nos testes: não exige conta nem grava em serviços reais. O GitHub Actions também instala o SDK, valida a importação da função Vercel e compila o frontend.
 
-A ação `.github/workflows/check.yml` instala dependências, executa os testes e compila o frontend no GitHub.
+A publicação real precisa da conexão do Blob na sua conta. Os testes locais não substituem a verificação dessa configuração.
 
-## Publicação recomendada: um único servidor
+## Hospedagem Node opcional
 
-A opção mais simples é servir frontend e backend juntos em uma hospedagem Node com disco persistente. `render.yaml` prepara essa configuração no Render, com uma instância e disco em `/var/data`. **Essa configuração usa plano com disco pago**; não ativa cobrança automaticamente neste projeto.
+Se preferir um servidor tradicional, `npm run build && npm start` serve tudo junto. Configure `DATABASE_PATH` em disco persistente, `APP_ORIGIN=https://seu-dominio`, `NODE_ENV=production` e uma única instância. `render.yaml` permanece como opção; não é necessário para publicar na Vercel. O blueprint do Render requer plano com disco persistente; não foi ativado automaticamente.
 
-1. Conecte **o repositório existente** `Novaesweb/Sorteio-` à hospedagem.
-2. Use Node 24, build `npm install && npm run build && npm test` e inicialização `npm start`.
-3. Monte um disco persistente e defina `DATABASE_PATH=/var/data/familia.sqlite`.
-4. Defina `NODE_ENV=production`, `APP_ORIGIN=https://seu-dominio` (sem barra final). `PORT` é fornecido pela hospedagem.
-5. Publique com HTTPS e abra `/adm` para gerar os códigos. Em produção, o servidor se recusa a iniciar sem origem HTTPS configurada.
-
-Nunca use um diretório temporário para os dados em produção. Faça backups privados e regulares. Para copiar o banco com segurança, pare o serviço antes de copiar o arquivo ou utilize a API de backup do SQLite. A cópia isolada de um banco aberto em WAL pode perder alterações recentes.
-
-### Vercel (opcional, para o frontend)
-
-O `vercel.json` configura build e rotas. **Vercel sozinha não mantém o arquivo SQLite entre execuções.** Para usar Vercel, mantenha o backend acima em uma hospedagem com disco persistente:
-
-- Importe o mesmo repositório na Vercel, preset Vite, build `npm run build`, saída `dist`, Node 24.
-- Configure `BACKEND_URL=https://seu-backend` nas variáveis de servidor da Vercel (sem caminho `/api`, sem prefixo `VITE_`).
-- No backend, defina `APP_ORIGIN` com a URL pública da **Vercel**. Use um domínio estável para que a origem continue válida.
-- `api/[...path].mjs` encaminha chamadas e cookies ao backend. O banco continua somente no servidor persistente.
-
-A hospedagem em um único servidor dispensa esse proxy e é mais simples para este evento.
-
-## Enviar os arquivos ao GitHub existente
-
-Se o código foi entregue por arquivo ZIP em vez de push, extraia para uma pasta temporária. Clone o repositório existente e copie **o conteúdo do projeto** para dentro dele, preservando o `.git` do clone e conferindo arquivos preexistentes antes de substituir.
-
-```bash
-git clone https://github.com/Novaesweb/Sorteio-.git
-cd Sorteio-
-# Copie os arquivos entregues para esta pasta, sem .env, data/, node_modules/ ou .git.
-npm install
-npm test
-npm run build
-git status
-git add .
-git commit -m "Implementa amigo secreto da família 2027 sem Supabase"
-git push origin HEAD
-```
-
-Não crie outro repositório e não use push forçado. Revise `git diff --cached` antes do commit. O ZIP não contém credenciais, banco, códigos individuais nem resultados.
+Faça backups privados do banco. Ao copiar SQLite de um servidor tradicional, pare o serviço ou use a API de backup do SQLite, pois o arquivo WAL pode conter alterações ainda não incorporadas ao arquivo principal.
 
 ## Estrutura
 
 ```text
-src/                  React, componentes, estilos e cliente da API
-server/               HTTP, autenticação, SQLite e sorteio seguro
-scripts/              Inicialização do ambiente de desenvolvimento
-api/                  Proxy opcional para Vercel
-tests/               Testes de regras e integração (sem dependências)
-render.yaml           Servidor único com disco persistente
-vercel.json           Frontend opcional na Vercel
-.env.example          Modelo de configuração privada
+src/                         React, visual e cliente da API
+shared/participants.json     Os 12 nomes, uma única fonte
+api/[...path].mjs             Vercel Function, sem servidor externo
+server/serverless.mjs        Execução e persistência com controle de versão
+server/blob-store.mjs        Leitura privada e escrita condicional
+server/app.mjs               Regras, autenticação e endpoints
+server/db.mjs                Esquema SQLite
+server/draw.mjs              Sorteio seguro
+scripts/dev.mjs              Ambiente local
+tests/                       Regras, integração e acessos simultâneos
+vercel.json                  Build, função e rotas
+.env.example                 Configuração local
 ```
 
-## Validação da entrega
-
-Os cinco testes de backend passaram localmente, incluindo 1.000 sorteios aleatórios, controle de acesso, lista fixa de 12 participantes e persistência. A compilação do frontend e os testes da versão anterior também passaram no GitHub Actions. O workflow repete essas verificações a cada push. A validação visual em navegador não foi realizada neste ambiente. Nenhuma hospedagem foi criada ou publicada e nenhum Supabase foi acessado.
+Não publique `.env`, bancos locais ou credenciais. Não crie outro repositório e não use push forçado.

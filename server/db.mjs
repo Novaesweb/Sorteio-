@@ -22,6 +22,7 @@ export function openDatabase(path) {
     );
     CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, action TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
     INSERT OR IGNORE INTO settings(id) VALUES(1);
+    CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS migrations (version INTEGER PRIMARY KEY);
   `);
   if (!db.prepare('SELECT 1 FROM migrations WHERE version=1').get()) {
