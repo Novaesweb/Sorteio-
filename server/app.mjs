@@ -107,8 +107,9 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
         if (req.method === 'GET' && !p.revealed_at) fail(409, 'Gire sua roleta primeiro.');
         const receiver = db.prepare('SELECT p.id,p.name FROM pairs JOIN participants p ON p.id=pairs.receiver WHERE giver=?').get(p.id);
         if (!receiver) fail(409, 'Sorteio indisponível. Consulte o organizador.');
-        if (req.method === 'POST') db.prepare('UPDATE participants SET revealed_at=COALESCE(revealed_at,?) WHERE id=?').run(now(), p.id);
-        return send(200, { participant:p.name, receiver, revealedAt:p.revealed_at || now() });
+        const revealedAt = p.revealed_at || now();
+        if (req.method === 'POST') db.prepare('UPDATE participants SET revealed_at=COALESCE(revealed_at,?) WHERE id=?').run(revealedAt, p.id);
+        return send(200, { participant:p.name, receiver, revealedAt });
       }
       if (path.startsWith('/api/admin/')) {
         session(req, 'admin');

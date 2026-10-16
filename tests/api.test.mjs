@@ -39,7 +39,7 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/start',{},admin.cookie)).status,409);
   assert.equal((await request('/admin/participants',{action:'remove',id:codes[1].id},admin.cookie)).status,403);
   assert.equal((await request('/result',undefined,user.cookie)).status,409);
-  const result=await request('/reveal',{},user.cookie);assert.equal(result.status,200);
+  const result=await request('/reveal',{},user.cookie);assert.equal(result.status,200);assert.equal(result.data.revealedAt,app.db.prepare('SELECT revealed_at FROM participants WHERE id=?').get(codes[0].id).revealed_at);
   assert.notEqual(result.data.receiver.id,codes[0].id);assert.equal(result.data.participant,codes[0].name);
   assert.deepEqual(Object.keys(result.data).sort(),['participant','receiver','revealedAt']);
   const again=await request('/reveal',{},user.cookie);assert.deepEqual(again.data,result.data);

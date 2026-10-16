@@ -6,7 +6,7 @@ Repositório oficial e único: **https://github.com/Novaesweb/Sorteio-.git**.
 
 ## O que está implementado
 
-- Página inicial floral, mobile-first, roleta com nomes, pétalas, brilhos e faixa de presentes de **R$ 40,00 a R$ 70,00** para todos.
+- Página inicial floral em roxo, vermelho e branco, mobile-first, roleta com nomes, pétalas, brilhos e faixa de presentes de **R$ 40,00 a R$ 70,00** para todos.
 - Cadastro por nome e código individual, sem senha de participante. O código confirma o cadastro e permite consultar de outro celular.
 - Lista fixa com somente os 12 nomes solicitados, criada automaticamente no primeiro uso. Não é possível adicionar ou remover participantes.
 
