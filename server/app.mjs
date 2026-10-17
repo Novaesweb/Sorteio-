@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { openDatabase } from './db.mjs';
-import { createDraw } from './draw.mjs';
+import { createFamilyDraw } from './draw.mjs';
 import { hashSecret, verifySecret, token, digest } from './security.mjs';
 import { ADMIN_CODE_HASH } from './config.mjs';
 
@@ -21,7 +21,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if (started()) return started();
       const participants=rows();
       if (participants.length!==14) fail(409,'A lista deve conter os 14 participantes.');
-      for (const pair of createDraw(participants.map(p=>p.id))) db.prepare('INSERT INTO pairs VALUES(?,?)').run(pair.giver,pair.receiver);
+      for (const pair of createFamilyDraw(participants)) db.prepare('INSERT INTO pairs(giver,receiver,receiver_slot) VALUES(?,?,?)').run(pair.giver,pair.receiver,pair.receiverSlot);
       const date=now();db.prepare('UPDATE settings SET started_at=? WHERE id=1').run(date);
       audit('Sorteio iniciado automaticamente no primeiro acesso válido');
       return date;

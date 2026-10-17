@@ -60,7 +60,8 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   const full=app.db.prepare('SELECT a.name AS giver,b.name AS receiver FROM pairs p JOIN participants a ON a.id=p.giver JOIN participants b ON b.id=p.receiver').all();
   const adminPairs=await request('/admin/results',undefined,admin.cookie);assert.equal(adminPairs.data.length,family.length);assert.deepEqual(adminPairs.data.map(p=>[p.giver,p.receiver]).sort(),full.map(p=>[p.giver,p.receiver]).sort());
   assert.equal((await request('/admin/results')).status,401);
-  assert.equal(full.length,family.length);assert.equal(new Set(full.map(p=>p.receiver)).size,family.length);
+  assert.equal(full.length,family.length);assert.equal(new Set(full.map(p=>p.receiver)).size,family.length-1);
+  assert.equal(full.filter(p=>p.receiver==='Iris Ferreira').length,2);assert.equal(full.filter(p=>p.receiver==='Erick').length,0);
   // Every participant logs in and receives only their own assigned result.
   for(const c of codes.slice(1)){
    const login=await request('/login',{id:c.id,code:c.code});

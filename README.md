@@ -63,7 +63,7 @@ A lista pública fica em `shared/participants.json`; o cadastro aguarda a respos
 - `/meu-resultado`: consulta do resultado do nome da sessão e download pessoal.
 - `/adm`: acompanhamento de participação.
 
-As combinações são geradas juntas no servidor. Todos dão e recebem exatamente um presente; ninguém tira a si mesmo. O giro apenas anima o resultado já atribuído. Há som opcional, pétalas, confetes e preferência para reduzir animações.
+As combinações são geradas juntas no servidor. Cada participante tem um destinatário; ninguém tira a si mesmo. Exceção autorizada: Iris Ferreira recebe dois presentes, substituindo Erick como destinatário. O giro apenas anima o resultado já atribuído. Há som opcional, pétalas, confetes e preferência para reduzir animações.
 
 ## Hospedagem e Supabase
 
@@ -91,7 +91,7 @@ Na Vercel, use Vite, Node 24.x, build `npm run build` e saída `dist`. A branch 
 - Limite persistente de 60 tentativas por nome ou acesso administrativo em 15 minutos.
 - Cada consulta de resultado retorna apenas o resultado do nome autenticado pela sessão, nunca a lista completa. A entrada valida o ID individual vinculado ao nome.
 - A consulta de pares na API administrativa exige sessão de organizador.
-- Sorteio criptográfico Fisher–Yates com rejeição de autoatribuições. Restrições SQL impedem pares duplicados e autoatribuição.
+- Sorteio criptográfico Fisher–Yates com rejeição de autoatribuições. Restrições SQL impedem autoatribuição e limitam cada destinatário a uma vaga; somente Iris Ferreira dispõe de duas vagas.
 - O bloqueio da linha do evento e transações impedem sorteios globais conflitantes.
 - Histórico administrativo não contém IDs em texto nem nomes dos destinatários.
 
@@ -143,3 +143,5 @@ O primeiro acesso com nome e ID individual válidos gera os 14 pares de uma vez,
 Identidade Novaesweb: fundo preto, roxo, magenta, vermelho e textos claros. A marca fornecida está em `public/novaesweb.jpg`, com o crédito “Criado com amor por Novaesweb” no rodapé de todas as páginas.
 
 A ampliação para 14 participantes reiniciou uma única vez as confirmações, revelações, pares e sessões de participantes. Os IDs individuais existentes foram preservados; gere os IDs pendentes de Patrícia e Agatha no painel.
+
+A exceção `supabase/iris-exception.sql` troca somente o destinatário Erick por Iris Ferreira no sorteio existente. Os outros pares, IDs e estados de cadastro/revelação são preservados. Erick não aparece como destinatário na roleta; sua atribuição como presenteador fica preservada. O organizador consulta a pessoa afetada no painel e avisa pelo WhatsApp. Iris permanece visível na roleta, em duas posições, sem duplicar o cadastro dela.

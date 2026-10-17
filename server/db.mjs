@@ -47,5 +47,19 @@ export function openDatabase(path) {
       db.exec('INSERT INTO migrations(version) VALUES(3); COMMIT');
     } catch (e) { db.exec('ROLLBACK'); throw e; }
   }
+  if (!db.prepare('SELECT 1 FROM migrations WHERE version=4').get()) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.exec(`CREATE TABLE pairs_exception (
+        giver INTEGER PRIMARY KEY REFERENCES participants(id),
+        receiver INTEGER NOT NULL REFERENCES participants(id),
+        receiver_slot INTEGER NOT NULL DEFAULT 1 CHECK(receiver_slot IN (1,2)),
+        CHECK(giver!=receiver),CHECK(receiver_slot=1 OR receiver=7),UNIQUE(receiver,receiver_slot));
+        INSERT INTO pairs_exception(giver,receiver) SELECT giver,receiver FROM pairs;
+        UPDATE pairs_exception SET receiver=7,receiver_slot=2 WHERE receiver=12;
+        DROP TABLE pairs;ALTER TABLE pairs_exception RENAME TO pairs;
+        INSERT INTO migrations(version) VALUES(4);COMMIT`);
+    } catch(e){db.exec('ROLLBACK');throw e;}
+  }
   return db;
 }

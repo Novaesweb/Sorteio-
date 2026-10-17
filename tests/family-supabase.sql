@@ -40,6 +40,8 @@ begin
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=409,'cannot redraw';
  select count(*) into n from familia_ferreira_2027.pairs;assert n=14,'must have 14 pairs';
  assert not exists(select 1 from familia_ferreira_2027.pairs where giver=receiver),'no self assignment';
+ assert (select count(*) from familia_ferreira_2027.pairs where receiver=7)=2,'Iris must receive twice';
+ assert not exists(select 1 from familia_ferreira_2027.pairs where receiver=12),'Erick is not a recipient';
  for counter in 1..14 loop
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',tokens[counter]));
   assert (r->>'status')::int=200,'each participant must reveal';
@@ -64,7 +66,7 @@ begin
  -- Exercise the production SQL draw repeatedly. Constraints reject duplicates.
  for counter in 1..100 loop
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=200,'draw must succeed';
-  assert (select count(*)=14 and count(distinct receiver)=14 and bool_and(giver<>receiver) from familia_ferreira_2027.pairs),'draw invariants must hold';
+  assert (select count(*)=14 and count(distinct receiver)=13 and bool_and(giver<>receiver) from familia_ferreira_2027.pairs),'draw invariants must hold';
   delete from familia_ferreira_2027.pairs;update familia_ferreira_2027.settings set started_at=null;
  end loop;
 end $$;
