@@ -78,7 +78,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
         const p = db.prepare('SELECT * FROM participants WHERE id=?').get(Number(input.id) || -1);
         // A dummy verification keeps unknown names and invalid codes on a similar work path.
         const valid = verifySecret(String(input.code || '').toUpperCase().trim(), p?.code_hash || hashSecret('invalid-placeholder'));
-        if (!p || !valid) fail(401, 'Nome ou código incorreto. Confira com o organizador.');
+        if (!p || !valid) fail(401, 'Nome ou ID incorreto. Confira com o organizador.');
         db.prepare('UPDATE participants SET confirmed_at=COALESCE(confirmed_at,?) WHERE id=?').run(now(), p.id);
         newSession(res, 'participant', p.id);
         return send(200, { ok:true });
@@ -86,7 +86,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if (req.method === 'POST' && path === '/api/admin/login') {
         limit(req); const input = await body(req);
         if (!adminHash) fail(503, 'O organizador precisa configurar a senha no servidor.');
-        if (!verifySecret(input.password, adminHash)) fail(401, 'Código do administrador incorreto.');
+        if (!verifySecret(input.password, adminHash)) fail(401, 'ID do administrador incorreto.');
         newSession(res, 'admin'); audit('Login do organizador');
         return send(200, { ok:true });
       }
@@ -115,7 +115,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if (path.startsWith('/api/admin/')) {
         session(req, 'admin');
         if (req.method === 'GET' && path === '/api/admin/dashboard') return send(200, { participants:rows(), startedAt:started(), audit:db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 20').all() });
-        if (req.method === 'GET' && path === '/api/admin/results') return send(200, db.prepare('SELECT a.name AS giver,b.name AS receiver FROM pairs JOIN participants a ON a.id=giver JOIN participants b ON b.id=receiver ORDER BY a.id').all());
+        if (path === '/api/admin/results') fail(403,'O painel acompanha somente participação. Os nomes sorteados não são exibidos ao organizador.');
         if (req.method !== 'POST') fail(404, 'Operação não encontrada.');
         const input = await body(req);
         if (path === '/api/admin/codes') {
@@ -124,12 +124,14 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
           const codes = transaction(() => {
             const output = [];
             for (const p of rows().filter(p => id !== null ? p.id === id : !p.has_code)) {
-              const code = randomBytes(6).toString('hex').toUpperCase();
+              let code;
+              do { code = randomBytes(6).toString('hex').toUpperCase(); }
+              while (db.prepare('SELECT code_hash FROM participants WHERE id<>? AND code_hash IS NOT NULL').all(p.id).some(other=>verifySecret(code,other.code_hash)));
               db.prepare('UPDATE participants SET code_hash=? WHERE id=?').run(hashSecret(code), p.id);
               db.prepare("DELETE FROM sessions WHERE participant_id=? AND role='participant'").run(p.id);
               output.push({ id:p.id, name:p.name, code });
             }
-            audit(id !== null ? `Código substituído: participante ${id}` : 'Códigos individuais gerados');
+            audit(id !== null ? `ID substituído: participante ${id}` : 'IDs individuais gerados');
             return output;
           });
           return send(200, codes);
@@ -139,14 +141,14 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
             if (started()) fail(409, 'O sorteio já foi iniciado.');
             const participants = rows();
             if (participants.length < 2) fail(409, 'Inclua pelo menos dois participantes.');
-            if (participants.some(p => !p.has_code)) fail(409, 'Gere os códigos individuais antes de começar.');
+            if (participants.some(p => !p.has_code)) fail(409, 'Gere os IDs individuais antes de começar.');
             const pairs = createDraw(participants.map(p => p.id));
             for (const pair of pairs) db.prepare('INSERT INTO pairs VALUES(?,?)').run(pair.giver, pair.receiver);
             db.prepare('UPDATE settings SET started_at=? WHERE id=1').run(now()); audit('Sorteio global iniciado');
           }); return send(200, { ok:true });
         }
         if (path === '/api/admin/reset') {
-          if (input.confirmation !== 'INVALIDAR RESULTADOS' || !verifySecret(input.password, adminHash)) fail(400, 'Digite INVALIDAR RESULTADOS e confirme o código do administrador.');
+          if (input.confirmation !== 'INVALIDAR RESULTADOS' || !verifySecret(input.password, adminHash)) fail(400, 'Digite INVALIDAR RESULTADOS e confirme o ID do administrador.');
           transaction(() => {
             db.exec("DELETE FROM pairs; UPDATE settings SET started_at=NULL WHERE id=1; UPDATE participants SET revealed_at=NULL; DELETE FROM sessions WHERE role='participant'");
             audit('Sorteio reiniciado: resultados e sessões anteriores invalidados');

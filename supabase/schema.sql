@@ -101,7 +101,7 @@ begin
  if v_path in ('/login','/admin/login') and v_method='POST' then
   if v_path='/admin/login' then v_key:='admin';
   else
-   if coalesce(v_input->>'id','')!~'^[0-9]{1,3}$' then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Nome ou código incorreto.')); end if;
+   if coalesce(v_input->>'id','')!~'^[0-9]{1,3}$' then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Nome ou ID incorreto.')); end if;
    v_id:=(v_input->>'id')::integer; v_key:='participant:'||v_id;
   end if;
   delete from familia_ferreira_2027.login_attempts where expires<now();
@@ -110,14 +110,14 @@ begin
   if v_count>60 then return familia_ferreira_2027.reply(429,jsonb_build_object('error','Muitas tentativas. Aguarde 15 minutos.')); end if;
   if v_path='/admin/login' then
    v_pass:=coalesce(v_input->>'password',''); v_expected:=v_settings.admin_code_hash;
-   if length(v_pass)>72 or extensions.crypt(v_pass,v_expected)<>v_expected then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Código do administrador incorreto.')); end if;
+   if length(v_pass)>72 or extensions.crypt(v_pass,v_expected)<>v_expected then return familia_ferreira_2027.reply(401,jsonb_build_object('error','ID do administrador incorreto.')); end if;
    v_role:='admin'; v_age:=28800; v_id:=null;
    insert into familia_ferreira_2027.audit(action) values('Login do organizador');
   else
    select * into v_person from familia_ferreira_2027.participants where id=v_id;
    v_pass:=upper(trim(coalesce(v_input->>'code','')));
    v_expected:=coalesce(v_person.code_hash,v_settings.admin_code_hash);
-   if v_person.code_hash is null or length(v_pass)>72 or extensions.crypt(v_pass,v_expected)<>v_expected then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Nome ou código incorreto. Confira com o organizador.')); end if;
+   if v_person.code_hash is null or length(v_pass)>72 or extensions.crypt(v_pass,v_expected)<>v_expected then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Nome ou ID incorreto. Confira com o organizador.')); end if;
    update familia_ferreira_2027.participants set confirmed_at=coalesce(confirmed_at,now()) where id=v_id;
    v_role:='participant'; v_age:=604800;
   end if;
@@ -154,10 +154,7 @@ begin
    select jsonb_agg(jsonb_build_object('id',id,'name',name,'confirmed_at',confirmed_at,'revealed_at',revealed_at,'has_code',case when code_hash is null then 0 else 1 end) order by id) into v_data from familia_ferreira_2027.participants;
    return familia_ferreira_2027.reply(200,jsonb_build_object('participants',v_data,'startedAt',v_settings.started_at,'audit',coalesce((select jsonb_agg(to_jsonb(a) order by a.id desc) from (select id,action,created_at from familia_ferreira_2027.audit order by id desc limit 20) a),'[]'::jsonb)));
   end if;
-  if v_path='/admin/results' and v_method='GET' then
-   select coalesce(jsonb_agg(jsonb_build_object('giver',a.name,'receiver',b.name) order by a.id),'[]'::jsonb) into v_data from familia_ferreira_2027.pairs p join familia_ferreira_2027.participants a on a.id=p.giver join familia_ferreira_2027.participants b on b.id=p.receiver;
-   return familia_ferreira_2027.reply(200,v_data);
-  end if;
+  if v_path='/admin/results' then return familia_ferreira_2027.reply(403,jsonb_build_object('error','O painel acompanha somente participação. Os nomes sorteados não são exibidos ao organizador.'));end if;
   if v_method='POST' then
    if v_path='/admin/codes' then
     if v_input->>'id' is not null then
@@ -166,17 +163,20 @@ begin
      if not exists(select 1 from familia_ferreira_2027.participants where id=v_id) then return familia_ferreira_2027.reply(404,jsonb_build_object('error','Participante não encontrado.')); end if;
     end if;
     for v_person in select * from familia_ferreira_2027.participants where (v_id is not null and id=v_id) or (v_id is null and code_hash is null) order by id loop
-     v_code:=upper(encode(extensions.gen_random_bytes(6),'hex'));
+     loop
+      v_code:=upper(encode(extensions.gen_random_bytes(6),'hex'));
+      exit when not exists(select 1 from familia_ferreira_2027.participants where id<>v_person.id and code_hash is not null and extensions.crypt(v_code,code_hash)=code_hash);
+     end loop;
      update familia_ferreira_2027.participants set code_hash=extensions.crypt(v_code,extensions.gen_salt('bf',10)) where id=v_person.id;
      delete from familia_ferreira_2027.sessions where participant_id=v_person.id;
      v_codes:=v_codes||jsonb_build_array(jsonb_build_object('id',v_person.id,'name',v_person.name,'code',v_code));
     end loop;
-    insert into familia_ferreira_2027.audit(action) values(case when v_id is null then 'Códigos individuais gerados' else 'Código individual substituído' end);
+    insert into familia_ferreira_2027.audit(action) values(case when v_id is null then 'IDs individuais gerados' else 'ID individual substituído' end);
     return familia_ferreira_2027.reply(200,v_codes);
    end if;
    if v_path='/admin/start' then
     if v_settings.started_at is not null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','O sorteio já foi iniciado.')); end if;
-    if exists(select 1 from familia_ferreira_2027.participants where code_hash is null) then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Gere os códigos individuais antes de começar.')); end if;
+    if exists(select 1 from familia_ferreira_2027.participants where code_hash is null) then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Gere os IDs individuais antes de começar.')); end if;
     select array_agg(id::integer order by id) into v_ids from familia_ferreira_2027.participants;
     if cardinality(v_ids)<>12 then return familia_ferreira_2027.reply(409,jsonb_build_object('error','A lista deve conter os 12 participantes.')); end if;
     loop
@@ -196,7 +196,7 @@ begin
    end if;
    if v_path='/admin/reset' then
     v_pass:=coalesce(v_input->>'password','');
-    if coalesce(v_input->>'confirmation','')<>'INVALIDAR RESULTADOS' or length(v_pass)>72 or extensions.crypt(v_pass,v_settings.admin_code_hash)<>v_settings.admin_code_hash then return familia_ferreira_2027.reply(400,jsonb_build_object('error','Digite INVALIDAR RESULTADOS e confirme o código do administrador.')); end if;
+    if coalesce(v_input->>'confirmation','')<>'INVALIDAR RESULTADOS' or length(v_pass)>72 or extensions.crypt(v_pass,v_settings.admin_code_hash)<>v_settings.admin_code_hash then return familia_ferreira_2027.reply(400,jsonb_build_object('error','Digite INVALIDAR RESULTADOS e confirme o ID do administrador.')); end if;
     delete from familia_ferreira_2027.pairs;
     update familia_ferreira_2027.settings set started_at=null where id=true;
     update familia_ferreira_2027.participants set revealed_at=null;

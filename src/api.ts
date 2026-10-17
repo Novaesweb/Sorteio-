@@ -3,7 +3,6 @@ export type Event = { participants:Person[]; startedAt:string|null; storageReady
 export type Me = Person & { startedAt:string|null };
 export type Result = { participant:string; receiver:Person; revealedAt:string };
 export type Dashboard = Event & { audit:{id:number;action:string;created_at:string}[] };
-export type Code = { id:number;name:string;code:string };
 export class ApiError extends Error { constructor(message:string, public status:number) { super(message); } }
 export async function api<T>(path:string, data?:unknown):Promise<T> {
   let response:Response;
@@ -13,3 +12,5 @@ export async function api<T>(path:string, data?:unknown):Promise<T> {
   if (!response.ok) throw new ApiError(value.error || 'Não foi possível continuar.', response.status);
   return value;
 }
+
+export type AccessId = {id:number;name:string;code:string};

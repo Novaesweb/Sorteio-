@@ -31,6 +31,9 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.deepEqual(Object.keys(event.data.participants[0]).sort(),['id','name']);
   const generated=await request('/admin/codes',{},admin.cookie);assert.equal(generated.data.length,12);
   const codes=generated.data;
+  assert.equal(new Set(codes.map(c=>c.code)).size,12);
+  assert.equal((await request('/login',{id:codes[1].id,code:codes[0].code})).status,401);
+  assert.equal((await request('/login',{id:codes[0].id,code:'1803'})).status,401);
   assert.equal((await request('/admin/codes',{},admin.cookie)).data.length,0);
   assert.equal((await request('/login',{id:codes[0].id,code:'wrong'})).status,401);
   const user=await request('/login',{id:codes[0].id,code:codes[0].code});assert.equal(user.status,200);
@@ -50,14 +53,16 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal(dashboard.data.participants.filter(p=>p.confirmed_at).length,1);
   assert.equal(dashboard.data.participants.filter(p=>p.revealed_at).length,1);
   assert.ok(!JSON.stringify(dashboard.data).includes('code_hash'));
-  const full=await request('/admin/results',undefined,admin.cookie);assert.equal(full.data.length,12);
-  assert.equal(new Set(full.data.map(p=>p.receiver)).size,12);
+  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
+  assert.ok(!JSON.stringify(dashboard.data).includes('receiver'));
+  const full=app.db.prepare('SELECT a.name AS giver,b.name AS receiver FROM pairs p JOIN participants a ON a.id=p.giver JOIN participants b ON b.id=p.receiver').all();
+  assert.equal(full.length,12);assert.equal(new Set(full.map(p=>p.receiver)).size,12);
   // Every participant logs in and receives only their own assigned result.
   for(const c of codes.slice(1)){
    const login=await request('/login',{id:c.id,code:c.code});
    const own=await request('/reveal',{},login.cookie);
    assert.equal(own.data.participant,c.name);assert.notEqual(own.data.receiver.id,c.id);
-   assert.equal(own.data.receiver.name,full.data.find(p=>p.giver===c.name).receiver);
+   assert.equal(own.data.receiver.name,full.find(p=>p.giver===c.name).receiver);
   }
   const replacement=await request('/admin/codes',{id:codes[0].id},admin.cookie);
   assert.equal((await request('/result',undefined,user.cookie)).status,401);
@@ -68,7 +73,7 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/reset',{confirmation:'INVALIDAR RESULTADOS',password:'wrong'},admin.cookie)).status,400);
   assert.equal((await request('/admin/reset',{confirmation:'INVALIDAR RESULTADOS',password},admin.cookie)).status,200);
   assert.equal((await request('/result',undefined,renewed.cookie)).status,401);
-  assert.equal((await request('/admin/results',undefined,admin.cookie)).data.length,0);
+  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
   const final=await request('/admin/dashboard',undefined,admin.cookie);
   assert.equal(final.data.participants.filter(p=>p.revealed_at).length,0);
   assert.equal(final.data.participants.filter(p=>p.confirmed_at).length,12);

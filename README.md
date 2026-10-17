@@ -1,51 +1,43 @@
 # Família Ferreira e familiares · Ano Novo 2027
 
-Site React + TypeScript + Tailwind com cadastro por nome/código, roleta e painel administrativo. Roxo, vermelho e branco. Presentes de **R$ 40,00 a R$ 70,00**.
+Site da família com visual roxo, vermelho e branco, roleta, cadastro por nome e **ID individual**, e painel que acompanha apenas a participação. Presentes: **R$ 40,00 a R$ 70,00**.
 
-Repositório único: https://github.com/Novaesweb/Sorteio-.git.
+Repositório: https://github.com/Novaesweb/Sorteio-.git.
 
-## Publicação atual: Vercel + Supabase Sites demo
+## Entrada dos familiares
 
-O site foi conectado ao novo projeto **Sites demo**, em São Paulo:
+1. O organizador entra em `/adm` e clica em **Gerar IDs pendentes** para criar os IDs de quem ainda não tem acesso.
+2. A lista aparece uma vez para copiar. Cada ID deve ser entregue somente ao dono do nome correspondente.
+3. O familiar clica em **Quero participar do sorteio**, informa seu **ID individual** e seleciona o próprio nome.
+4. O servidor aceita o cadastro somente se o ID pertencer ao nome selecionado.
+5. Depois do início global, a roleta revela o resultado. O mesmo ID permite voltar de outro celular sem mudar o destinatário.
 
-- [Painel do Supabase](https://supabase.com/dashboard/project/abkzgepigxfottjblgyf)
-- Projeto: `abkzgepigxfottjblgyf`.
-- Dados do sorteio: schema privado `familia_ferreira_2027`.
-- Backend: Edge Function `familia-ferreira`.
-- Vercel: a função `api/[...path].mjs` encaminha somente as operações do site.
+Cada pessoa recebe um ID diferente, aleatório e persistente. O ID de uma pessoa não funciona no nome de outra. O ID compartilhado anterior foi desativado.
 
-**Não precisa de `BACKEND_URL`, Blob, Render nem chave privada na Vercel.** As informações públicas de destino estão em `shared/supabase.json`. A única chave no repositório é uma chave **publishable**, sem permissão para ler tabelas nem executar a RPC privada. As credenciais privilegiadas são as variáveis internas da Edge Function e nunca saem do Supabase.
+Quem perder o ID pode receber outro pelo botão **Gerar novo ID** na sua linha. Isso invalida o ID e as sessões anteriores, preservando o cadastro e o resultado. Não existe recuperação do ID em texto a partir do hash: guarde a lista no momento da geração.
 
-O projeto Supabase anterior não foi alterado. Futuras landing pages podem usar o **Sites demo** com tabelas, funções, políticas e dados próprios, separados do schema da família. Compartilhar o projeto compartilha os limites e o plano, mas não deve compartilhar acesso aos dados privados.
+## Painel do organizador
 
-### Na Vercel
+Em `/adm`, use o **ID do administrador de seis dígitos**, separado dos IDs individuais dos familiares.
 
-1. Mantenha o projeto conectado à branch `main` deste repositório.
-2. Framework **Vite**, Node **24.x**, build `npm run build`, saída `dist`.
-3. Aguarde a publicação automática após o push ou use **Deployments → Redeploy** na versão mais recente.
-4. Abra a URL principal publicada e entre em `/adm` com o código de **seis dígitos** combinado com o organizador.
+O painel permite gerar os IDs e mostra:
 
-Previews da Vercel não aceitam alterações no banco de produção. Para cadastrar, girar ou administrar, use a URL principal de produção. Desenvolvimento local usa um banco de demonstração separado.
+- Quem confirmou o cadastro e quem ainda não confirmou.
+- Quem já girou e quem ainda falta girar.
+- Contadores e estados, atualizados a cada cinco segundos.
+- Filtros **Falta girar** (aberto por padrão), **Já giraram** e **Todos**.
 
-O código real do administrador foi configurado diretamente no banco e não aparece em texto no frontend, nos arquivos SQL ou nos testes. O código anterior foi invalidado. Na reinstalação em outro projeto, o bootstrap cria um segredo aleatório; configure o código administrativo privadamente no novo ambiente antes de usar.
+**O painel não exibe quem cada pessoa tirou.** Não há consulta da lista de pares: `/api/admin/results` é bloqueado inclusive para sessões administrativas. A API do dashboard retorna somente estados e datas. Isso se refere ao painel do site; um proprietário com acesso direto ao banco Supabase ainda tem os poderes de administração do banco.
 
-## Como usar
+O organizador pode iniciar o sorteio global, abrir lembretes no WhatsApp e reiniciar com confirmação reforçada. O WhatsApp abre com o texto pronto; o organizador escolhe o contato e confirma o envio. O site não afirma ter enviado uma mensagem automaticamente.
 
-1. Entre em `/adm` e clique em **Gerar códigos pendentes**.
-2. Copie a lista de códigos e guarde em local privado. Cada código só é mostrado nessa geração.
-3. Compartilhe cada código apenas com o dono do nome; não envie a lista completa ao grupo.
-4. Cada familiar seleciona o próprio nome e confirma usando o código individual. Não precisa de e-mail nem senha própria.
-5. No painel, use os filtros **Todos**, **Pendentes** e **Confirmados**. Os estados atualizam a cada cinco segundos.
-6. Clique em **Iniciar sorteio**. Todos os 12 nomes entram, inclusive quem ainda não confirmou. Eles poderão confirmar depois.
-7. Cada participante gira a roleta para revelar apenas seu resultado. Atualizar, entrar de outro celular ou consultar novamente não troca o destinatário.
+Reiniciar exige a frase `INVALIDAR RESULTADOS` e o ID administrativo. Remove os pares e sessões dos familiares, preservando confirmações e os IDs individuais. Resultados já vistos ou baixados não podem ser removidos dos celulares: avise a família sobre a invalidação.
 
-O código administrativo é separado dos códigos individuais. O acesso do organizador dura oito horas; o do participante, sete dias. O código individual permite entrar novamente e deve ser mantido privado.
+Os IDs reais foram configurados privadamente no servidor. Os arquivos SQL de instalação inicializam hashes aleatórios, e os testes usam IDs próprios, sem conter o ID administrativo real em texto.
 
-O painel permite substituir códigos perdidos, consultar pares em área restrita e reiniciar com o código administrativo e a frase `INVALIDAR RESULTADOS`. O reinício invalida pares e sessões dos participantes, mas preserva códigos e confirmações. Resultados já vistos ou baixados não podem ser apagados dos celulares: avise a família.
+## Lista fixa
 
-Os lembretes abrem o WhatsApp com a mensagem pronta. O organizador escolhe o contato e confirma o envio. Não há envio automático.
-
-## Os 12 nomes fixos
+Somente estes nomes participam, sem inclusão ou remoção pelo site:
 
 1. Caíque Eduardo
 2. Estephane
@@ -60,35 +52,46 @@ Os lembretes abrem o WhatsApp com a mensagem pronta. O organizador escolhe o con
 11. Jenifer
 12. Erick
 
-Não é possível adicionar nem remover pessoas pelo site. `shared/participants.json` guarda a lista pública e os nomes aparecem antes da resposta da API. Ao confirmar, o servidor valida o nome e o código.
+A lista pública fica em `shared/participants.json` e aparece no cadastro antes da resposta da API. A confirmação depende do servidor disponível e do ID correto.
 
-## Páginas
+## Páginas e roleta
 
-- `/`: apresentação, faixa dos presentes e cadastro.
-- `/sorteio`: roleta e revelação.
-- `/meu-resultado`: consulta protegida e download pessoal.
-- `/adm`: login com código de seis dígitos e painel do organizador.
+- `/`: apresentação, regras e cadastro.
+- `/sorteio`: roleta e revelação individual do nome escolhido.
+- `/meu-resultado`: consulta do resultado do nome da sessão e download pessoal.
+- `/adm`: acompanhamento de participação.
 
-A roleta só anima um resultado já atribuído no servidor. Há pétalas, confetes, som opcional e opção de reduzir animações.
+As combinações são geradas juntas no servidor. Todos dão e recebem exatamente um presente; ninguém tira a si mesmo. O giro apenas anima o resultado já atribuído. Há som opcional, pétalas, confetes e preferência para reduzir animações.
 
-## Segurança e dados
+## Hospedagem e Supabase
 
-- Todas as tabelas da família ficam no schema privado `familia_ferreira_2027`, sem acesso para `anon` e `authenticated`.
-- RLS habilitado com políticas explícitas que negam acesso direto. Não há tabelas da família expostas publicamente.
-- A RPC `public.familia_ferreira_api` usa **SECURITY INVOKER** e `search_path` vazio. Apenas `service_role` pode executá-la. Não há função `SECURITY DEFINER` pública.
-- A Edge Function usa as credenciais internas do próprio Supabase para chamar a RPC. Toda operação restrita verifica a sessão do participante ou do administrador no banco.
-- A verificação JWT padrão da Edge Function está desativada porque a aplicação utiliza autenticação própria por códigos e sessões. Isso não libera resultados: os endpoints privados exigem as sessões conferidas no banco. Nenhuma decisão de autorização depende de `user_metadata`.
-- Códigos aleatórios de 48 bits protegidos por bcrypt com sal individual; o código administrativo também fica como hash.
-- Tokens de sessão aleatórios de 256 bits; apenas SHA-256 dos tokens persistem no banco.
-- O proxy da Vercel grava o token em cookie HttpOnly/SameSite=Strict/Secure e remove os metadados de sessão do JSON enviado à página.
-- Sessão do participante só retorna seu resultado. A lista completa dos pares exige sessão administrativa.
-- SQL parametrizado, chaves estrangeiras e restrições `UNIQUE`/`CHECK` impedem destinatários duplicados e autoatribuição.
-- O sorteio usa Fisher–Yates com bytes criptográficos e amostragem por rejeição, sem `random()` do Postgres. Todas as combinações são inseridas na mesma transação.
-- Um bloqueio na linha do evento serializa as operações e impede sorteios simultâneos conflitantes.
-- Limite persistente de 60 tentativas em 15 minutos por nome/código administrativo. Tentativas incorretas também são contadas. O código administrativo é fixo e deve permanecer restrito ao organizador.
-- Logs administrativos registram ações, nunca códigos individuais nem pares. O histórico é privado.
+A versão publicada usa **Vercel + Supabase Sites demo**:
 
-O schema não deve ser incluído nas listas de schemas expostos da Data API. Futuras demos devem ter suas próprias permissões, sem conceder acesso a este schema. Não reutilize a Edge Function da família como API genérica de outros sites.
+- [Supabase Sites demo](https://supabase.com/dashboard/project/abkzgepigxfottjblgyf), região de São Paulo.
+- Schema privado: `familia_ferreira_2027`.
+- Edge Function: `familia-ferreira`.
+- Proxy da Vercel: `api/[...path].mjs`.
+
+Não são necessários `BACKEND_URL`, Blob, Render ou chaves privadas na Vercel. A configuração pública está em `shared/supabase.json`. A chave publishable não tem acesso às tabelas nem à RPC privada. As credenciais internas da Edge Function permanecem no Supabase.
+
+O projeto Supabase anterior não foi alterado. Futuras landing pages podem usar o **Sites demo** com schemas, tabelas e permissões próprios. Elas não devem reutilizar a API nem receber acesso ao schema da família. Os limites e o plano são compartilhados dentro do projeto.
+
+Na Vercel, use Vite, Node 24.x, build `npm run build` e saída `dist`. A branch de produção é `main`. Aguarde a publicação automática após o push ou faça Redeploy da versão mais recente. Preview não altera os dados de produção: para participar ou administrar, use o endereço principal publicado.
+
+## Proteção do backend
+
+- Schema privado com RLS habilitado e políticas que negam acesso direto a `anon` e `authenticated`.
+- RPC `SECURITY INVOKER`, `search_path` vazio e execução exclusiva para `service_role`.
+- A Edge Function chama a RPC com suas credenciais de servidor. A própria RPC confere o ID de entrada ou a sessão, e o ID administrativo em ações de organização.
+- `verify_jwt=false` na Edge Function porque a autenticação é própria por IDs e sessões. Operações privadas continuam protegidas na RPC.
+- IDs armazenados como hashes bcrypt com sal, nunca em texto no banco.
+- Tokens de sessão aleatórios de 256 bits, somente SHA-256 no banco. O proxy grava cookies HttpOnly/SameSite=Strict/Secure e não envia metadados internos de sessão à página.
+- Limite persistente de 60 tentativas por nome ou acesso administrativo em 15 minutos.
+- Cada consulta de resultado retorna apenas o resultado do nome autenticado pela sessão, nunca a lista completa. A entrada valida o ID individual vinculado ao nome.
+- Não há acesso a pares pela API administrativa.
+- Sorteio criptográfico Fisher–Yates com rejeição de autoatribuições. Restrições SQL impedem pares duplicados e autoatribuição.
+- O bloqueio da linha do evento e transações impedem sorteios globais conflitantes.
+- Histórico administrativo não contém IDs em texto nem nomes dos destinatários.
 
 ## Verificação
 
@@ -99,16 +102,13 @@ npm run build
 npm run check:live
 ```
 
-- Testes locais: 1.000 sorteios, autenticação, cadastro, privacidade, estabilidade de resultado, reinício e proteção do proxy/cookies.
-- `tests/family-supabase.sql`: testes do Postgres real, incluindo os 12 cadastros, sessões, resultados individuais, revogação de códigos, reinício e 100 sorteios. Executa tudo dentro de uma transação e faz **ROLLBACK**. O código administrativo usado pelo arquivo é exclusivo do teste; a configuração real não é alterada permanentemente.
-- `npm run check:live`: verifica a Edge Function publicada, os 12 nomes, bloqueio administrativo sem sessão, negação da RPC com chave pública e o handler da Vercel. Não muda registros nem conhece o código administrativo.
-- GitHub Actions instala dependências, testa, compila e executa a verificação pública do backend real.
+Os testes locais cobrem 1.000 sorteios, IDs individuais, rejeição de ID de outra pessoa, confirmações sem duplicação, consulta em outro celular, resultado estável, reinício e bloqueio de pares no painel e na API.
 
-O schema foi aplicado no novo Supabase, os testes de transação passaram e os dados de teste foram revertidos. A revisão de segurança do Supabase não apontou avisos. A publicação na sua URL Vercel depende do redeploy da atualização.
+`tests/family-supabase.sql` verifica o Postgres real, inclusive os 12 logins com seus próprios IDs e a rejeição de ID cruzado, a negação da lista de pares ao administrador e 100 sorteios. Todas as alterações de teste ficam em uma transação com **ROLLBACK**. Os IDs desse arquivo são apenas de teste.
 
-## Desenvolvimento local separado
+`npm run check:live` verifica a Edge Function publicada, nomes públicos, autenticação administrativa, bloqueio da RPC direta com chave pública e o handler Vercel, sem mudar dados. O GitHub Actions executa testes, compilação e verificação da API real.
 
-Node 24:
+## Desenvolvimento local
 
 ```bash
 git clone https://github.com/Novaesweb/Sorteio-.git
@@ -118,15 +118,16 @@ cp .env.example .env
 npm run dev
 ```
 
-Abra http://localhost:5173. O Vite usa o backend local SQLite em `server/app.mjs`. Os dados locais ficam em `data/`, ignorados pelo Git, e não são enviados ao Supabase. A implementação local existe para desenvolvimento e testes; Vercel usa a Edge Function.
+Node 24. Abra http://localhost:5173. O ambiente local usa SQLite em `data/`, separado do Supabase. A implementação local segue o mesmo modo de IDs individuais e painel sem pares.
 
-## Arquivos do backend Supabase
+Arquivos principais:
 
-- `supabase/schema.sql`: schema, dados iniciais, políticas e RPC reproduzíveis, sem o código administrativo real.
-- `supabase/functions/familia-ferreira/index.ts`: Edge Function usando `fetch` nativo, sem bibliotecas externas.
-- `supabase/functions/familia-ferreira/deno.json`: configuração do runtime.
-- `supabase/config.toml`: configuração da função com autenticação própria.
-- `shared/supabase.json`: URL, identificação e chave pública do novo projeto.
-- `server/supabase-proxy.mjs`: encaminhamento, origem e cookies seguros.
+- `src/`: interface React e estilos.
+- `shared/`: participantes e destino público do Supabase.
+- `server/supabase-proxy.mjs`: proxy e cookies da Vercel.
+- `supabase/schema.sql`: schema, funções e políticas reproduzíveis.
+- `supabase/functions/familia-ferreira/`: backend publicado.
+- `server/app.mjs`: backend de desenvolvimento local.
+- `tests/`: testes locais e do Postgres.
 
-Nenhuma biblioteca Supabase foi adicionada ao frontend. Não publique `.env`, chaves secretas, tokens de sessão ou bancos locais. Não crie outro repositório e não use push forçado.
+Não publique `.env`, chaves privadas, tokens de sessão ou bancos locais. Na reinstalação em outro projeto, configure os IDs privadamente no novo servidor; os valores reais não são incluídos nos arquivos de bootstrap.

@@ -17,8 +17,11 @@ begin
  r:=public.familia_ferreira_api('{"method":"GET","path":"/admin/dashboard","input":{}}');assert (r->>'status')::int=401,'dashboard requires auth';
  r:=public.familia_ferreira_api('{"method":"POST","path":"/admin/login","input":{"password":"wrong"}}');assert (r->>'status')::int=401,'incorrect admin code must fail';
  r:=public.familia_ferreira_api('{"method":"POST","path":"/admin/login","input":{"password":"123456"}}');assert (r->>'status')::int=200,'admin code must work';a:=r->'session'->>'token';
+ r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/results','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=403,'admin may not see pairs';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/codes','input','{}'::jsonb,'sessionToken',a));
  assert (r->>'status')::int=200 and jsonb_array_length(r->'data')=12,'must generate 12 individual codes';code_rows:=r->'data';code1:=code_rows->0->>'code';
+ r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/login','input',jsonb_build_object('id',2,'code',code_rows->0->>'code')));assert (r->>'status')::int=401,'ID must not authenticate another name';
+ r:=public.familia_ferreira_api('{"method":"POST","path":"/login","input":{"id":1,"code":"1803"}}');assert (r->>'status')::int=401,'shared ID is disabled';
  for one in select value from jsonb_array_elements(code_rows) loop
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/login','input',jsonb_build_object('id',one->'id','code',one->>'code')));
   assert (r->>'status')::int=200,'participant login must work';tokens:=array_append(tokens,r->'session'->>'token');
@@ -42,6 +45,8 @@ begin
  r2:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert r1=r2,'new device must see same result';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/dashboard','input','{}'::jsonb,'sessionToken',a));
  select count(*) into n from jsonb_array_elements(r->'data'->'participants') p where p->>'confirmed_at' is not null and p->>'revealed_at' is not null;assert n=12,'dashboard must track all confirmations and revelations';
+ assert position('receiver' in (r->'data')::text)=0,'dashboard must not expose recipients';
+ r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/results','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=403,'admin still cannot see revealed pairs';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/participants','input',jsonb_build_object('action','add','name','Other'),'sessionToken',a));assert (r->>'status')::int=403,'roster is fixed';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/codes','input',jsonb_build_object('id',1),'sessionToken',a));
  r2:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert (r2->>'status')::int=401,'new code must revoke old sessions';
