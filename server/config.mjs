@@ -1,2 +1,2 @@
-// Código administrativo fixo solicitado pelo organizador; validação somente no backend.
-export const ADMIN_CODE_HASH = "dd6f4ef17882b6218597ddb3a84bbff3:c7b728932701ca35ed9d4a2fa6910929f5ab1c7f68bcce1e2f951185ec0271d3";
+// Código administrativo de seis dígitos solicitado pelo organizador.
+export const ADMIN_CODE_HASH = "30c7e3db649fd47ac5bd4ece254d9c64:7e8cf32d4cde28e72f1a0a5981f459d412557eef17c8357ba2ea92d29bcee8b9";

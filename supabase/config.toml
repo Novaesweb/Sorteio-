@@ -1,0 +1,3 @@
+project_id = "sites-demo"
+[functions.familia-ferreira]
+verify_jwt = false
