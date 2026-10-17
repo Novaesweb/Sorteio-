@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api, ApiError, type Person, type Event, type Me, type Result, type Dashboard, type AccessId } from './api';
+import { api, revealResult, ApiError, type Person, type Event, type Me, type Result, type Dashboard, type AccessId } from './api';
 import './styles.css';
 import familyNames from '../shared/participants.json';
 
@@ -68,7 +68,7 @@ function DrawPage({event,reduce,sound,resultOnly,onRegister}:{event:Event|null;r
  const [me,setMe]=useState<Me|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[result,setResult]=useState<Result|null>(null),[spinning,setSpinning]=useState(false),[rotation,setRotation]=useState(0);
  const inFlight=useRef(false), autoAttempt=useRef(false), timer=useRef<ReturnType<typeof setTimeout>|null>(null);
  useEffect(()=>{let alive=true; const load=async()=>{try{const p=await api<Me>('/me');if(!alive)return;setMe(p);setError('');if(p.revealed_at){const r=await api<Result>('/result');if(alive)setResult(r);}}catch(e){if(alive){setError((e as Error).message);if((e as ApiError).status===401){setMe(null);setResult(null);}}}finally{if(alive)setLoading(false);}};load();const interval=setInterval(()=>{if(!inFlight.current)load();},5000);return()=>{alive=false;clearInterval(interval);if(timer.current)clearTimeout(timer.current);};},[]);
- async function spin(){if(inFlight.current||!me)return;inFlight.current=true;setSpinning(true);setError('');try{if(sound)playSound();const r=await api<Result>('/reveal');const people=event?.participants||seedPeople;const index=people.findIndex(p=>p.id===r.receiver.id);const final=360-((index+.5)/people.length*360);setRotation(360*6+final);timer.current=setTimeout(()=>{setResult(r);setSpinning(false);setMe({...me,revealed_at:r.revealedAt});inFlight.current=false;},reduce?150:6500);}catch(e){setError((e as Error).message);setSpinning(false);inFlight.current=false;}}
+ async function spin(){if(inFlight.current||!me)return;inFlight.current=true;setSpinning(true);setError('');try{if(sound)playSound();const r=await revealResult();const people=event?.participants||seedPeople;const index=people.findIndex(p=>p.id===r.receiver.id);const final=360-((index+.5)/people.length*360);setRotation(360*6+final);timer.current=setTimeout(()=>{setResult(r);setSpinning(false);setMe({...me,revealed_at:r.revealedAt});inFlight.current=false;},reduce?150:6500);}catch(e){setError((e as Error).message);setSpinning(false);inFlight.current=false;}}
  useEffect(()=>{
   if(!loading&&me&&event&&!me.revealed_at&&!result&&!spinning&&!autoAttempt.current){autoAttempt.current=true;void spin();}
  },[loading,me,event,result,spinning]);
