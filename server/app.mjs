@@ -16,6 +16,17 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
   const rows = () => db.prepare('SELECT id,name,confirmed_at,revealed_at,code_hash IS NOT NULL AS has_code FROM participants ORDER BY id').all();
   const started = () => db.prepare('SELECT started_at FROM settings WHERE id=1').get().started_at;
   const transaction = work => { db.exec('BEGIN IMMEDIATE'); try { const result = work(); db.exec('COMMIT'); return result; } catch (e) { db.exec('ROLLBACK'); throw e; } };
+  function ensureDraw() {
+    return transaction(() => {
+      if (started()) return started();
+      const participants=rows();
+      if (participants.length!==12) fail(409,'A lista deve conter os 12 participantes.');
+      for (const pair of createDraw(participants.map(p=>p.id))) db.prepare('INSERT INTO pairs VALUES(?,?)').run(pair.giver,pair.receiver);
+      const date=now();db.prepare('UPDATE settings SET started_at=? WHERE id=1').run(date);
+      audit('Sorteio iniciado automaticamente no primeiro acesso válido');
+      return date;
+    });
+  }
   function newSession(res, role, participantId = null) {
     const raw = token(), age = role === 'admin' ? 28800 : 604800;
     db.prepare('DELETE FROM sessions WHERE expires < ?').run(Date.now());
@@ -70,7 +81,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
         } catch { fail(404, 'Página não encontrada. Execute npm run build primeiro.'); }
       }
       if (req.method === 'POST' && req.headers.origin && req.headers.origin !== origin) fail(403, 'Origem não permitida.');
-      if (req.method === 'GET' && path === '/api/event') return send(200, { startedAt: started(), participants: rows().map(p => ({ id:p.id, name:p.name })), year:2027 });
+      if (req.method === 'GET' && path === '/api/event') return send(200, { startedAt: started(), participants: rows().map(p => ({ id:p.id, name:p.name })), pendingParticipants: rows().filter(p=>!p.revealed_at).map(p=>({id:p.id,name:p.name})), year:2027 });
       if (req.method === 'GET' && path === '/api/health') return send(200, { ok:true });
       if (req.method === 'POST' && path === '/api/login') {
         limit(req);
@@ -79,6 +90,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
         // A dummy verification keeps unknown names and invalid codes on a similar work path.
         const valid = verifySecret(String(input.code || '').toUpperCase().trim(), p?.code_hash || hashSecret('invalid-placeholder'));
         if (!p || !valid) fail(401, 'Nome ou ID incorreto. Confira com o organizador.');
+        ensureDraw();
         db.prepare('UPDATE participants SET confirmed_at=COALESCE(confirmed_at,?) WHERE id=?').run(now(), p.id);
         newSession(res, 'participant', p.id);
         return send(200, { ok:true });
@@ -104,7 +116,8 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if ((req.method === 'POST' && path === '/api/reveal') || (req.method === 'GET' && path === '/api/result')) {
         const s = session(req, 'participant');
         const p = db.prepare('SELECT * FROM participants WHERE id=?').get(s.participant_id);
-        if (!started()) fail(409, 'O organizador ainda vai iniciar o sorteio.');
+        if (req.method==='POST') ensureDraw();
+        if (!started()) fail(409,'Entre novamente para revelar seu resultado.');
         if (req.method === 'GET' && !p.revealed_at) fail(409, 'Gire sua roleta primeiro.');
         const receiver = db.prepare('SELECT p.id,p.name FROM pairs JOIN participants p ON p.id=pairs.receiver WHERE giver=?').get(p.id);
         if (!receiver) fail(409, 'Sorteio indisponível. Consulte o organizador.');
@@ -137,15 +150,8 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
           return send(200, codes);
         }
         if (path === '/api/admin/start') {
-          transaction(() => {
-            if (started()) fail(409, 'O sorteio já foi iniciado.');
-            const participants = rows();
-            if (participants.length < 2) fail(409, 'Inclua pelo menos dois participantes.');
-            if (participants.some(p => !p.has_code)) fail(409, 'Gere os IDs individuais antes de começar.');
-            const pairs = createDraw(participants.map(p => p.id));
-            for (const pair of pairs) db.prepare('INSERT INTO pairs VALUES(?,?)').run(pair.giver, pair.receiver);
-            db.prepare('UPDATE settings SET started_at=? WHERE id=1').run(now()); audit('Sorteio global iniciado');
-          }); return send(200, { ok:true });
+          if (started()) fail(409,'O sorteio já foi iniciado.');
+          ensureDraw();return send(200,{ok:true});
         }
         if (path === '/api/admin/reset') {
           if (input.confirmation !== 'INVALIDAR RESULTADOS' || !verifySecret(input.password, adminHash)) fail(400, 'Digite INVALIDAR RESULTADOS e confirme o ID do administrador.');

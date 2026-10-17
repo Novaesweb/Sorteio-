@@ -1,5 +1,5 @@
 export type Person = { id:number; name:string; confirmed_at?:string|null; revealed_at?:string|null; has_code?:number };
-export type Event = { participants:Person[]; startedAt:string|null; storageReady?:boolean };
+export type Event = { participants:Person[]; pendingParticipants?:Person[]; startedAt:string|null; storageReady?:boolean };
 export type Me = Person & { startedAt:string|null };
 export type Result = { participant:string; receiver:Person; revealedAt:string };
 export type Dashboard = Event & { audit:{id:number;action:string;created_at:string}[] };

@@ -71,6 +71,33 @@ begin
 end;
 $$;
 
+create or replace function familia_ferreira_2027.ensure_draw()
+returns timestamptz language plpgsql volatile security invoker set search_path='' as $$
+declare v_at timestamptz; v_ids integer[]; v_targets integer[]; i integer; j integer; swap integer; valid boolean;
+begin
+ select started_at into v_at from familia_ferreira_2027.settings where id=true for update;
+ if v_at is not null then return v_at;end if;
+ select array_agg(id::integer order by id) into v_ids from familia_ferreira_2027.participants;
+ if cardinality(v_ids)<>12 then raise exception 'A lista deve conter os 12 participantes.';end if;
+ loop
+  v_targets:=v_ids;
+  for i in reverse cardinality(v_ids)..2 loop
+   j:=familia_ferreira_2027.random_below(i)+1;
+   swap:=v_targets[i];v_targets[i]:=v_targets[j];v_targets[j]:=swap;
+  end loop;
+  valid:=true;
+  for i in 1..cardinality(v_ids) loop if v_ids[i]=v_targets[i] then valid:=false;exit;end if;end loop;
+  exit when valid;
+ end loop;
+ for i in 1..cardinality(v_ids) loop insert into familia_ferreira_2027.pairs(giver,receiver) values(v_ids[i],v_targets[i]);end loop;
+ v_at:=now();update familia_ferreira_2027.settings set started_at=v_at where id=true;
+ insert into familia_ferreira_2027.audit(action) values('Sorteio iniciado automaticamente no primeiro acesso válido');
+ return v_at;
+end;
+$$;
+revoke all on function familia_ferreira_2027.ensure_draw() from public,anon,authenticated;
+grant execute on function familia_ferreira_2027.ensure_draw() to service_role;
+
 -- Invoker-only RPC: anonymous/authenticated callers cannot invoke it or access tables.
 -- Edge Function uses its built-in server credentials; this function validates app sessions.
 create or replace function public.familia_ferreira_api(request jsonb)
@@ -95,7 +122,7 @@ begin
  select * into v_settings from familia_ferreira_2027.settings where id=true for update;
  if v_path='/event' and v_method='GET' then
   select jsonb_agg(jsonb_build_object('id',id,'name',name) order by id) into v_data from familia_ferreira_2027.participants;
-  return familia_ferreira_2027.reply(200,jsonb_build_object('participants',v_data,'startedAt',v_settings.started_at,'year',2027,'storageReady',true));
+  return familia_ferreira_2027.reply(200,jsonb_build_object('participants',v_data,'pendingParticipants',coalesce((select jsonb_agg(jsonb_build_object('id',id,'name',name) order by id) from familia_ferreira_2027.participants where revealed_at is null),'[]'::jsonb),'startedAt',v_settings.started_at,'year',2027,'storageReady',true));
  end if;
  if v_path='/health' and v_method='GET' then return familia_ferreira_2027.reply(200,'{"ok":true}'::jsonb); end if;
  if v_path in ('/login','/admin/login') and v_method='POST' then
@@ -118,6 +145,7 @@ begin
    v_pass:=upper(trim(coalesce(v_input->>'code','')));
    v_expected:=coalesce(v_person.code_hash,v_settings.admin_code_hash);
    if v_person.code_hash is null or length(v_pass)>72 or extensions.crypt(v_pass,v_expected)<>v_expected then return familia_ferreira_2027.reply(401,jsonb_build_object('error','Nome ou ID incorreto. Confira com o organizador.')); end if;
+   perform familia_ferreira_2027.ensure_draw();
    update familia_ferreira_2027.participants set confirmed_at=coalesce(confirmed_at,now()) where id=v_id;
    v_role:='participant'; v_age:=604800;
   end if;
@@ -141,7 +169,8 @@ begin
    return familia_ferreira_2027.reply(200,jsonb_build_object('id',v_person.id,'name',v_person.name,'confirmed_at',v_person.confirmed_at,'revealed_at',v_person.revealed_at,'startedAt',v_settings.started_at));
   end if;
   if (v_path='/reveal' and v_method='POST') or (v_path='/result' and v_method='GET') then
-   if v_settings.started_at is null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','O organizador ainda vai iniciar o sorteio.')); end if;
+   if v_method='POST' then v_settings.started_at:=familia_ferreira_2027.ensure_draw();end if;
+   if v_settings.started_at is null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Entre novamente para revelar seu resultado.'));end if;
    if v_method='GET' and v_person.revealed_at is null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Gire sua roleta primeiro.')); end if;
    select p.* into v_receiver from familia_ferreira_2027.pairs pair join familia_ferreira_2027.participants p on p.id=pair.receiver where pair.giver=v_person.id;
    if not found then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Sorteio indisponível.')); end if;
@@ -175,24 +204,8 @@ begin
     return familia_ferreira_2027.reply(200,v_codes);
    end if;
    if v_path='/admin/start' then
-    if v_settings.started_at is not null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','O sorteio já foi iniciado.')); end if;
-    if exists(select 1 from familia_ferreira_2027.participants where code_hash is null) then return familia_ferreira_2027.reply(409,jsonb_build_object('error','Gere os IDs individuais antes de começar.')); end if;
-    select array_agg(id::integer order by id) into v_ids from familia_ferreira_2027.participants;
-    if cardinality(v_ids)<>12 then return familia_ferreira_2027.reply(409,jsonb_build_object('error','A lista deve conter os 12 participantes.')); end if;
-    loop
-     v_targets:=v_ids;
-     for v_i in reverse cardinality(v_ids)..2 loop
-      v_j:=familia_ferreira_2027.random_below(v_i)+1;
-      v_swap:=v_targets[v_i];v_targets[v_i]:=v_targets[v_j];v_targets[v_j]:=v_swap;
-     end loop;
-     v_valid:=true;
-     for v_i in 1..cardinality(v_ids) loop if v_ids[v_i]=v_targets[v_i] then v_valid:=false;exit;end if;end loop;
-     exit when v_valid;
-    end loop;
-    for v_i in 1..cardinality(v_ids) loop insert into familia_ferreira_2027.pairs(giver,receiver) values(v_ids[v_i],v_targets[v_i]);end loop;
-    update familia_ferreira_2027.settings set started_at=now() where id=true;
-    insert into familia_ferreira_2027.audit(action) values('Sorteio global iniciado');
-    return familia_ferreira_2027.reply(200,'{"ok":true}'::jsonb);
+    if v_settings.started_at is not null then return familia_ferreira_2027.reply(409,jsonb_build_object('error','O sorteio já foi iniciado.'));end if;
+    perform familia_ferreira_2027.ensure_draw();return familia_ferreira_2027.reply(200,'{"ok":true}'::jsonb);
    end if;
    if v_path='/admin/reset' then
     v_pass:=coalesce(v_input->>'password','');

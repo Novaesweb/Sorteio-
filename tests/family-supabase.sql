@@ -1,6 +1,13 @@
 -- Run against Sites demo only. Every test mutation is rolled back.
 begin;
 set local role service_role;
+-- Isolate fixtures inside this transaction, preserving live data on rollback.
+lock table familia_ferreira_2027.settings, familia_ferreira_2027.participants, familia_ferreira_2027.pairs, familia_ferreira_2027.sessions, familia_ferreira_2027.login_attempts in exclusive mode;
+delete from familia_ferreira_2027.sessions;
+delete from familia_ferreira_2027.pairs;
+delete from familia_ferreira_2027.login_attempts;
+update familia_ferreira_2027.settings set started_at=null;
+update familia_ferreira_2027.participants set code_hash=null,confirmed_at=null,revealed_at=null;
 -- Test-only code; this update and all test data are rolled back.
 update familia_ferreira_2027.settings set admin_code_hash=extensions.crypt('123456',extensions.gen_salt('bf',10));
 do $$
@@ -29,8 +36,7 @@ begin
  u:=tokens[1];
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/results','input','{}'::jsonb,'sessionToken',u));assert (r->>'status')::int=401,'participant must not see global pairs';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/me','input','{}'::jsonb,'sessionToken',u));assert not ((r->'data')?'receiver'),'profile must not reveal receiver';
- r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',u));assert (r->>'status')::int=409,'cannot reveal before start';
- r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=200,'global draw must start';
+ r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert (r->>'status')::int=409,'result requires individual reveal';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=409,'cannot redraw';
  select count(*) into n from familia_ferreira_2027.pairs;assert n=12,'must have 12 pairs';
  assert not exists(select 1 from familia_ferreira_2027.pairs where giver=receiver),'no self assignment';
@@ -38,6 +44,7 @@ begin
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',tokens[counter]));
   assert (r->>'status')::int=200,'each participant must reveal';
   assert (r->'data'->'receiver'->>'id')::int<>counter,'own result must not be self';
+  r:=public.familia_ferreira_api('{"method":"GET","path":"/event"}');assert jsonb_array_length(r->'data'->'pendingParticipants')=12-counter,'revealed names disappear from registration';
  end loop;
  r1:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',u));
  r2:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert r1=r2,'result and date must stay stable';

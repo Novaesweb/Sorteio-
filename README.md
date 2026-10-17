@@ -29,7 +29,7 @@ O painel permite gerar os IDs e mostra:
 
 **O painel não exibe quem cada pessoa tirou.** Não há consulta da lista de pares: `/api/admin/results` é bloqueado inclusive para sessões administrativas. A API do dashboard retorna somente estados e datas. Isso se refere ao painel do site; um proprietário com acesso direto ao banco Supabase ainda tem os poderes de administração do banco.
 
-O organizador pode iniciar o sorteio global, abrir lembretes no WhatsApp e reiniciar com confirmação reforçada. O WhatsApp abre com o texto pronto; o organizador escolhe o contato e confirma o envio. O site não afirma ter enviado uma mensagem automaticamente.
+O primeiro acesso válido inicia o sorteio global automaticamente. O organizador pode abrir lembretes no WhatsApp e reiniciar com confirmação reforçada. O WhatsApp abre com o texto pronto; o organizador escolhe o contato e confirma o envio. O site não afirma ter enviado uma mensagem automaticamente.
 
 Reiniciar exige a frase `INVALIDAR RESULTADOS` e o ID administrativo. Remove os pares e sessões dos familiares, preservando confirmações e os IDs individuais. Resultados já vistos ou baixados não podem ser removidos dos celulares: avise a família sobre a invalidação.
 
@@ -134,3 +134,8 @@ Arquivos principais:
 Não publique `.env`, chaves privadas, tokens de sessão ou bancos locais. Na reinstalação em outro projeto, configure os IDs privadamente no novo servidor; os valores reais não são incluídos nos arquivos de bootstrap.
 
 A ação **Verificar site publicado na Vercel** confere a URL pública real, incluindo as rotas de login e painel administrativo. `/api/admin/dashboard` sem sessão deve retornar JSON 401, nunca uma página 404. O teste aguarda a publicação automática e não altera cadastros nem cria sessões.
+
+### Participação automática e identidade visual
+O primeiro acesso com nome e ID individual válidos gera os 12 pares de uma vez, mesmo que os demais ainda não tenham entrado. A roleta revela automaticamente o resultado do participante. Os pares permanecem fixos. Quem já revelou deixa de aparecer no cadastro inicial e na roleta da página inicial; continua disponível em `/meu-resultado` para consulta com seu próprio ID. O painel acompanha somente os estados, sem acesso aos pares.
+
+Identidade Novaesweb: fundo preto, roxo, magenta, vermelho e textos claros. A marca fornecida está em `public/novaesweb.jpg`, com o crédito “Criado com amor por Novaesweb” no rodapé de todas as páginas.

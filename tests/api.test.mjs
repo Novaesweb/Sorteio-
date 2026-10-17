@@ -36,16 +36,18 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/login',{id:codes[0].id,code:'1803'})).status,401);
   assert.equal((await request('/admin/codes',{},admin.cookie)).data.length,0);
   assert.equal((await request('/login',{id:codes[0].id,code:'wrong'})).status,401);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,0);
   const user=await request('/login',{id:codes[0].id,code:codes[0].code});assert.equal(user.status,200);
-  assert.equal((await request('/reveal',{},user.cookie)).status,409);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,12);
+  const initialPairs=app.db.prepare('SELECT * FROM pairs ORDER BY giver').all();
   assert.equal((await request('/admin/results',undefined,user.cookie)).status,401);
-  assert.equal((await request('/admin/start',{},admin.cookie)).status,200);
   assert.equal((await request('/admin/start',{},admin.cookie)).status,409);
   assert.equal((await request('/admin/participants',{action:'remove',id:codes[1].id},admin.cookie)).status,403);
   assert.equal((await request('/result',undefined,user.cookie)).status,409);
   const result=await request('/reveal',{},user.cookie);assert.equal(result.status,200);assert.equal(result.data.revealedAt,app.db.prepare('SELECT revealed_at FROM participants WHERE id=?').get(codes[0].id).revealed_at);
   assert.notEqual(result.data.receiver.id,codes[0].id);assert.equal(result.data.participant,codes[0].name);
   assert.deepEqual(Object.keys(result.data).sort(),['participant','receiver','revealedAt']);
+  const pending=await request('/event');assert.equal(pending.data.pendingParticipants.length,11);assert.ok(!pending.data.pendingParticipants.some(p=>p.id===codes[0].id));
   const again=await request('/reveal',{},user.cookie);assert.deepEqual(again.data,result.data);
   const secondDevice=await request('/login',{id:codes[0].id,code:codes[0].code});
   assert.deepEqual((await request('/result',undefined,secondDevice.cookie)).data,result.data);
@@ -64,6 +66,8 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
    assert.equal(own.data.participant,c.name);assert.notEqual(own.data.receiver.id,c.id);
    assert.equal(own.data.receiver.name,full.find(p=>p.giver===c.name).receiver);
   }
+  assert.deepEqual(app.db.prepare('SELECT * FROM pairs ORDER BY giver').all(),initialPairs);
+  assert.deepEqual((await request('/event')).data.pendingParticipants,[]);
   const replacement=await request('/admin/codes',{id:codes[0].id},admin.cookie);
   assert.equal((await request('/result',undefined,user.cookie)).status,401);
   assert.equal((await request('/login',{id:codes[0].id,code:codes[0].code})).status,401);
@@ -80,7 +84,8 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/participants',{action:'add',name:'Estephane'},admin.cookie)).status,403);
   assert.equal((await request('/admin/participants',{action:'add',name:'Pessoa nova'},admin.cookie)).status,403);
   assert.equal((await request('/admin/participants',{action:'add',name:'JÉSSICA RAFAELA'},admin.cookie)).status,403);
-  const updated=await request('/event');assert.equal(updated.data.participants.length,12);
+  const updated=await request('/event');assert.equal(updated.data.participants.length,12);assert.equal(updated.data.pendingParticipants.length,12);
+  const restarted=await request('/login',{id:codes[1].id,code:codes[1].code});assert.equal(restarted.status,200);assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,12);
   assert.equal((await request('/admin/logout',{},admin.cookie)).status,200);
   assert.equal((await request('/admin/dashboard',undefined,admin.cookie)).status,401);
  }finally{app.server.close();app.db.close();}
