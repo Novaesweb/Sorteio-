@@ -52,7 +52,7 @@ Somente estes nomes participam, sem inclusão ou remoção pelo site:
 11. Jenifer
 12. Erick
 13. Patrícia
-14. Noah
+14. Agatha
 
 A lista pública fica em `shared/participants.json`; o cadastro aguarda a resposta da API. A confirmação depende do servidor disponível e do ID correto.
 
@@ -142,4 +142,4 @@ O primeiro acesso com nome e ID individual válidos gera os 14 pares de uma vez,
 
 Identidade Novaesweb: fundo preto, roxo, magenta, vermelho e textos claros. A marca fornecida está em `public/novaesweb.jpg`, com o crédito “Criado com amor por Novaesweb” no rodapé de todas as páginas.
 
-A ampliação para 14 participantes reiniciou uma única vez as confirmações, revelações, pares e sessões de participantes. Os IDs individuais existentes foram preservados; gere os IDs pendentes de Patrícia e Noah no painel.
+A ampliação para 14 participantes reiniciou uma única vez as confirmações, revelações, pares e sessões de participantes. Os IDs individuais existentes foram preservados; gere os IDs pendentes de Patrícia e Agatha no painel.

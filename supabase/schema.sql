@@ -18,7 +18,7 @@ create table if not exists familia_ferreira_2027.participants (
  code_hash text, confirmed_at timestamptz, revealed_at timestamptz
 );
 insert into familia_ferreira_2027.participants(id,name)
- select ordinality::smallint,name from unnest(array['Caíque Eduardo','Estephane','Jéssica Rafaela','Igor','Caio','Rafael','Iris Ferreira','Augusto','Lucas Rodrigo','Camila Dias','Jenifer','Erick','Patrícia','Noah']) with ordinality as p(name,ordinality)
+ select ordinality::smallint,name from unnest(array['Caíque Eduardo','Estephane','Jéssica Rafaela','Igor','Caio','Rafael','Iris Ferreira','Augusto','Lucas Rodrigo','Camila Dias','Jenifer','Erick','Patrícia','Agatha']) with ordinality as p(name,ordinality)
  on conflict do nothing;
 create table if not exists familia_ferreira_2027.pairs (
  giver smallint primary key references familia_ferreira_2027.participants(id),

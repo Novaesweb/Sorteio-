@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {openDatabase,family} from '../server/db.mjs';
 
-test('ampliação reinicia os 12 participantes antigos uma vez, preserva IDs e inclui Patrícia e Noah',()=>{
+test('ampliação reinicia os 12 participantes antigos uma vez, preserva IDs e inclui Patrícia e Agatha',()=>{
  const dir=mkdtempSync(join(tmpdir(),'familia-upgrade-')),path=join(dir,'test.sqlite');
  let db;
  try{
@@ -15,7 +15,7 @@ test('ampliação reinicia os 12 participantes antigos uma vez, preserva IDs e i
   db.exec("UPDATE participants SET code_hash='existing-hash',confirmed_at='old',revealed_at='old'; UPDATE settings SET started_at='old'; INSERT INTO pairs VALUES(1,2); INSERT INTO sessions VALUES('old-session','participant',1,9999999999999)");
   db.close();db=openDatabase(path);
   assert.deepEqual(db.prepare('SELECT name FROM participants ORDER BY id').all().map(p=>p.name),family);
-  assert.equal(family.length,14);assert.deepEqual(family.slice(-2),['Patrícia','Noah']);
+  assert.equal(family.length,14);assert.deepEqual(family.slice(-2),['Patrícia','Agatha']);
   assert.equal(db.prepare('SELECT count(*) n FROM pairs').get().n,0);
   assert.equal(db.prepare('SELECT count(*) n FROM sessions').get().n,0);
   assert.equal(db.prepare('SELECT count(*) n FROM participants WHERE confirmed_at IS NOT NULL OR revealed_at IS NOT NULL').get().n,0);
