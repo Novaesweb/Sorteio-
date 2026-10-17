@@ -8,7 +8,9 @@ export async function api<T>(path:string, data?:unknown):Promise<T> {
   let response:Response;
   try { response = await fetch(`/api${path}`, { credentials:'same-origin', ...(data === undefined ? {} : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }) }); }
   catch { throw new ApiError('Sem conexão com o servidor. Tente novamente.', 0); }
-  const value = await response.json().catch(() => ({ error:'O servidor não está disponível. Tente novamente.' }));
+  let value;
+  try { value = await response.json(); }
+  catch { throw new ApiError('Não foi possível abrir o acesso. Recarregue a página e tente novamente.', response.status || 502); }
   if (!response.ok) throw new ApiError(value.error || 'Não foi possível continuar.', response.status);
   return value;
 }

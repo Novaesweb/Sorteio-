@@ -125,9 +125,12 @@ Arquivos principais:
 - `src/`: interface React e estilos.
 - `shared/`: participantes e destino público do Supabase.
 - `server/supabase-proxy.mjs`: proxy e cookies da Vercel.
+- `api/admin/[action].mjs`: rota administrativa explícita para os endpoints com dois segmentos na Vercel/Vite.
 - `supabase/schema.sql`: schema, funções e políticas reproduzíveis.
 - `supabase/functions/familia-ferreira/`: backend publicado.
 - `server/app.mjs`: backend de desenvolvimento local.
 - `tests/`: testes locais e do Postgres.
 
 Não publique `.env`, chaves privadas, tokens de sessão ou bancos locais. Na reinstalação em outro projeto, configure os IDs privadamente no novo servidor; os valores reais não são incluídos nos arquivos de bootstrap.
+
+A ação **Verificar site publicado na Vercel** confere a URL pública real, incluindo as rotas de login e painel administrativo. `/api/admin/dashboard` sem sessão deve retornar JSON 401, nunca uma página 404. O teste aguarda a publicação automática e não altera cadastros nem cria sessões.
