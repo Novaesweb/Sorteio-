@@ -32,5 +32,13 @@ export function openDatabase(path) {
       db.exec('INSERT INTO migrations(version) VALUES(1); COMMIT');
     } catch (e) { db.exec('ROLLBACK'); throw e; }
   }
+  // One-time roster expansion: restart participation, preserving existing IDs.
+  if (!db.prepare('SELECT 1 FROM migrations WHERE version=2').get()) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const name of family) db.prepare('INSERT OR IGNORE INTO participants(name) VALUES(?)').run(name);
+      db.exec("DELETE FROM pairs; UPDATE settings SET started_at=NULL WHERE id=1; UPDATE participants SET confirmed_at=NULL,revealed_at=NULL; DELETE FROM sessions WHERE role='participant'; INSERT INTO migrations(version) VALUES(2); COMMIT");
+    } catch (e) { db.exec('ROLLBACK'); throw e; }
+  }
   return db;
 }

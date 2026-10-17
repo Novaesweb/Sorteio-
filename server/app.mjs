@@ -20,7 +20,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
     return transaction(() => {
       if (started()) return started();
       const participants=rows();
-      if (participants.length!==12) fail(409,'A lista deve conter os 12 participantes.');
+      if (participants.length!==14) fail(409,'A lista deve conter os 14 participantes.');
       for (const pair of createDraw(participants.map(p=>p.id))) db.prepare('INSERT INTO pairs VALUES(?,?)').run(pair.giver,pair.receiver);
       const date=now();db.prepare('UPDATE settings SET started_at=? WHERE id=1').run(date);
       audit('Sorteio iniciado automaticamente no primeiro acesso válido');
@@ -160,7 +160,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
             audit('Sorteio reiniciado: resultados e sessões anteriores invalidados');
           }); return send(200, { ok:true });
         }
-        if (path === '/api/admin/participants') fail(403, 'A lista é fixa: somente os 12 nomes informados pela família.');
+        if (path === '/api/admin/participants') fail(403, 'A lista é fixa: somente os 14 nomes informados pela família.');
       }
       fail(404, 'Operação não encontrada.');
     } catch (error) {

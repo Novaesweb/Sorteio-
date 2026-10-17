@@ -51,8 +51,10 @@ Somente estes nomes participam, sem inclusão ou remoção pelo site:
 10. Camila Dias
 11. Jenifer
 12. Erick
+13. Patrícia
+14. Noah
 
-A lista pública fica em `shared/participants.json` e aparece no cadastro antes da resposta da API. A confirmação depende do servidor disponível e do ID correto.
+A lista pública fica em `shared/participants.json`; o cadastro aguarda a resposta da API. A confirmação depende do servidor disponível e do ID correto.
 
 ## Páginas e roleta
 
@@ -104,7 +106,7 @@ npm run check:live
 
 Os testes locais cobrem 1.000 sorteios, IDs individuais, rejeição de ID de outra pessoa, confirmações sem duplicação, consulta em outro celular, resultado estável, reinício e bloqueio de pares no painel e na API.
 
-`tests/family-supabase.sql` verifica o Postgres real, inclusive os 12 logins com seus próprios IDs e a rejeição de ID cruzado, a negação da lista de pares ao administrador e 100 sorteios. Todas as alterações de teste ficam em uma transação com **ROLLBACK**. Os IDs desse arquivo são apenas de teste.
+`tests/family-supabase.sql` verifica o Postgres real, inclusive os 14 logins com seus próprios IDs e a rejeição de ID cruzado, a negação da lista de pares ao administrador e 100 sorteios. Todas as alterações de teste ficam em uma transação com **ROLLBACK**. Os IDs desse arquivo são apenas de teste.
 
 `npm run check:live` verifica a Edge Function publicada, nomes públicos, autenticação administrativa, bloqueio da RPC direta com chave pública e o handler Vercel, sem mudar dados. O GitHub Actions executa testes, compilação e verificação da API real.
 
@@ -136,6 +138,8 @@ Não publique `.env`, chaves privadas, tokens de sessão ou bancos locais. Na re
 A ação **Verificar site publicado na Vercel** confere a URL pública real, incluindo as rotas de login e painel administrativo. `/api/admin/dashboard` sem sessão deve retornar JSON 401, nunca uma página 404. O teste aguarda a publicação automática e não altera cadastros nem cria sessões.
 
 ### Participação automática e identidade visual
-O primeiro acesso com nome e ID individual válidos gera os 12 pares de uma vez, mesmo que os demais ainda não tenham entrado. A roleta revela automaticamente o resultado do participante. Os pares permanecem fixos. Quem já revelou deixa de aparecer no cadastro inicial e na roleta da página inicial; continua disponível em `/meu-resultado` para consulta com seu próprio ID. O painel acompanha somente os estados, sem acesso aos pares.
+O primeiro acesso com nome e ID individual válidos gera os 14 pares de uma vez, mesmo que os demais ainda não tenham entrado. A roleta revela automaticamente o resultado do participante. Os pares permanecem fixos. Quem já revelou deixa de aparecer no cadastro inicial e na roleta da página inicial; continua disponível em `/meu-resultado` para consulta com seu próprio ID. O painel acompanha somente os estados, sem acesso aos pares.
 
 Identidade Novaesweb: fundo preto, roxo, magenta, vermelho e textos claros. A marca fornecida está em `public/novaesweb.jpg`, com o crédito “Criado com amor por Novaesweb” no rodapé de todas as páginas.
+
+A ampliação para 14 participantes reiniciou uma única vez as confirmações, revelações, pares e sessões de participantes. Os IDs individuais existentes foram preservados; gere os IDs pendentes de Patrícia e Noah no painel.

@@ -19,14 +19,14 @@ begin
  assert not has_function_privilege('authenticated','public.familia_ferreira_api(jsonb)','execute'),'authenticated must not invoke private RPC';
  assert not has_schema_privilege('anon','familia_ferreira_2027','usage'),'private schema must not be public';
  r:=public.familia_ferreira_api('{"method":"GET","path":"/event","input":{}}');
- assert (r->>'status')::int=200 and jsonb_array_length(r->'data'->'participants')=12,'public list must contain 12 names';
+ assert (r->>'status')::int=200 and jsonb_array_length(r->'data'->'participants')=14,'public list must contain 14 names';
  assert not ((r->'data'->'participants'->0)?'code_hash'),'public names must not expose hashes';
  r:=public.familia_ferreira_api('{"method":"GET","path":"/admin/dashboard","input":{}}');assert (r->>'status')::int=401,'dashboard requires auth';
  r:=public.familia_ferreira_api('{"method":"POST","path":"/admin/login","input":{"password":"wrong"}}');assert (r->>'status')::int=401,'incorrect admin code must fail';
  r:=public.familia_ferreira_api('{"method":"POST","path":"/admin/login","input":{"password":"123456"}}');assert (r->>'status')::int=200,'admin code must work';a:=r->'session'->>'token';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/results','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=403,'admin may not see pairs';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/codes','input','{}'::jsonb,'sessionToken',a));
- assert (r->>'status')::int=200 and jsonb_array_length(r->'data')=12,'must generate 12 individual codes';code_rows:=r->'data';code1:=code_rows->0->>'code';
+ assert (r->>'status')::int=200 and jsonb_array_length(r->'data')=14,'must generate 14 individual codes';code_rows:=r->'data';code1:=code_rows->0->>'code';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/login','input',jsonb_build_object('id',2,'code',code_rows->0->>'code')));assert (r->>'status')::int=401,'ID must not authenticate another name';
  r:=public.familia_ferreira_api('{"method":"POST","path":"/login","input":{"id":1,"code":"1803"}}');assert (r->>'status')::int=401,'shared ID is disabled';
  for one in select value from jsonb_array_elements(code_rows) loop
@@ -38,20 +38,20 @@ begin
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/me','input','{}'::jsonb,'sessionToken',u));assert not ((r->'data')?'receiver'),'profile must not reveal receiver';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert (r->>'status')::int=409,'result requires individual reveal';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=409,'cannot redraw';
- select count(*) into n from familia_ferreira_2027.pairs;assert n=12,'must have 12 pairs';
+ select count(*) into n from familia_ferreira_2027.pairs;assert n=14,'must have 14 pairs';
  assert not exists(select 1 from familia_ferreira_2027.pairs where giver=receiver),'no self assignment';
- for counter in 1..12 loop
+ for counter in 1..14 loop
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',tokens[counter]));
   assert (r->>'status')::int=200,'each participant must reveal';
   assert (r->'data'->'receiver'->>'id')::int<>counter,'own result must not be self';
-  r:=public.familia_ferreira_api('{"method":"GET","path":"/event"}');assert jsonb_array_length(r->'data'->'pendingParticipants')=12-counter,'revealed names disappear from registration';
+  r:=public.familia_ferreira_api('{"method":"GET","path":"/event"}');assert jsonb_array_length(r->'data'->'pendingParticipants')=14-counter,'revealed names disappear from registration';
  end loop;
  r1:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/reveal','input','{}'::jsonb,'sessionToken',u));
  r2:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert r1=r2,'result and date must stay stable';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/login','input',jsonb_build_object('id',1,'code',code1)));u:=r->'session'->>'token';
  r2:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/result','input','{}'::jsonb,'sessionToken',u));assert r1=r2,'new device must see same result';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/dashboard','input','{}'::jsonb,'sessionToken',a));
- select count(*) into n from jsonb_array_elements(r->'data'->'participants') p where p->>'confirmed_at' is not null and p->>'revealed_at' is not null;assert n=12,'dashboard must track all confirmations and revelations';
+ select count(*) into n from jsonb_array_elements(r->'data'->'participants') p where p->>'confirmed_at' is not null and p->>'revealed_at' is not null;assert n=14,'dashboard must track all confirmations and revelations';
  assert position('receiver' in (r->'data')::text)=0,'dashboard must not expose recipients';
  r:=public.familia_ferreira_api(jsonb_build_object('method','GET','path','/admin/results','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=403,'admin still cannot see revealed pairs';
  r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/participants','input',jsonb_build_object('action','add','name','Other'),'sessionToken',a));assert (r->>'status')::int=403,'roster is fixed';
@@ -64,9 +64,9 @@ begin
  -- Exercise the production SQL draw repeatedly. Constraints reject duplicates.
  for counter in 1..100 loop
   r:=public.familia_ferreira_api(jsonb_build_object('method','POST','path','/admin/start','input','{}'::jsonb,'sessionToken',a));assert (r->>'status')::int=200,'draw must succeed';
-  assert (select count(*)=12 and count(distinct receiver)=12 and bool_and(giver<>receiver) from familia_ferreira_2027.pairs),'draw invariants must hold';
+  assert (select count(*)=14 and count(distinct receiver)=14 and bool_and(giver<>receiver) from familia_ferreira_2027.pairs),'draw invariants must hold';
   delete from familia_ferreira_2027.pairs;update familia_ferreira_2027.settings set started_at=null;
  end loop;
 end $$;
 rollback;
-select 'PASS: auth, 12 participants, privacy, stable results, reset, 100 draws; all test data rolled back' as result;
+select 'PASS: auth, 14 participants, privacy, stable results, reset, 100 draws; all test data rolled back' as result;

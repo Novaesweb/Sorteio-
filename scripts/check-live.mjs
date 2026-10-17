@@ -20,5 +20,5 @@ assert.ok(denied.status===401||denied.status===403||denied.status===404,`Direct 
 const handler=createSupabaseHandler({endpoint,publishableKey:configuration.publishableKey});
 const res={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(s){this.statusCode=s;return this;},json(data){this.data=data;}};
 await handler({url:'/api/event',method:'GET',headers:{host:'familia.test'}},res);
-assert.equal(res.statusCode,200);assert.equal(res.data.participants.length,12);
-console.log('PASS: deployed Supabase function, 12 public names, admin authentication, blocked direct RPC and Vercel handler. No records changed.');
+assert.equal(res.statusCode,200);assert.equal(res.data.participants.length,family.length);
+console.log('PASS: deployed Supabase function, 14 public names, admin authentication, blocked direct RPC and Vercel handler. No records changed.');

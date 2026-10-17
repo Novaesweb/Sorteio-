@@ -27,18 +27,18 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/login',{password},'','https://evil.test')).status,403);
   assert.equal((await request('/admin/login',{password:'wrong'})).status,401);
   const admin=await request('/admin/login',{password});assert.equal(admin.status,200);
-  const event=await request('/event');assert.equal(event.data.participants.length,12);assert.deepEqual(event.data.participants.map(p=>p.name),family);
+  const event=await request('/event');assert.equal(event.data.participants.length,family.length);assert.deepEqual(event.data.participants.map(p=>p.name),family);
   assert.deepEqual(Object.keys(event.data.participants[0]).sort(),['id','name']);
-  const generated=await request('/admin/codes',{},admin.cookie);assert.equal(generated.data.length,12);
+  const generated=await request('/admin/codes',{},admin.cookie);assert.equal(generated.data.length,family.length);
   const codes=generated.data;
-  assert.equal(new Set(codes.map(c=>c.code)).size,12);
+  assert.equal(new Set(codes.map(c=>c.code)).size,family.length);
   assert.equal((await request('/login',{id:codes[1].id,code:codes[0].code})).status,401);
   assert.equal((await request('/login',{id:codes[0].id,code:'1803'})).status,401);
   assert.equal((await request('/admin/codes',{},admin.cookie)).data.length,0);
   assert.equal((await request('/login',{id:codes[0].id,code:'wrong'})).status,401);
   assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,0);
   const user=await request('/login',{id:codes[0].id,code:codes[0].code});assert.equal(user.status,200);
-  assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,12);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,family.length);
   const initialPairs=app.db.prepare('SELECT * FROM pairs ORDER BY giver').all();
   assert.equal((await request('/admin/results',undefined,user.cookie)).status,401);
   assert.equal((await request('/admin/start',{},admin.cookie)).status,409);
@@ -47,7 +47,7 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   const result=await request('/reveal',{},user.cookie);assert.equal(result.status,200);assert.equal(result.data.revealedAt,app.db.prepare('SELECT revealed_at FROM participants WHERE id=?').get(codes[0].id).revealed_at);
   assert.notEqual(result.data.receiver.id,codes[0].id);assert.equal(result.data.participant,codes[0].name);
   assert.deepEqual(Object.keys(result.data).sort(),['participant','receiver','revealedAt']);
-  const pending=await request('/event');assert.equal(pending.data.pendingParticipants.length,11);assert.ok(!pending.data.pendingParticipants.some(p=>p.id===codes[0].id));
+  const pending=await request('/event');assert.equal(pending.data.pendingParticipants.length,family.length-1);assert.ok(!pending.data.pendingParticipants.some(p=>p.id===codes[0].id));
   const again=await request('/reveal',{},user.cookie);assert.deepEqual(again.data,result.data);
   const secondDevice=await request('/login',{id:codes[0].id,code:codes[0].code});
   assert.deepEqual((await request('/result',undefined,secondDevice.cookie)).data,result.data);
@@ -58,7 +58,7 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
   assert.ok(!JSON.stringify(dashboard.data).includes('receiver'));
   const full=app.db.prepare('SELECT a.name AS giver,b.name AS receiver FROM pairs p JOIN participants a ON a.id=p.giver JOIN participants b ON b.id=p.receiver').all();
-  assert.equal(full.length,12);assert.equal(new Set(full.map(p=>p.receiver)).size,12);
+  assert.equal(full.length,family.length);assert.equal(new Set(full.map(p=>p.receiver)).size,family.length);
   // Every participant logs in and receives only their own assigned result.
   for(const c of codes.slice(1)){
    const login=await request('/login',{id:c.id,code:c.code});
@@ -80,18 +80,18 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
   const final=await request('/admin/dashboard',undefined,admin.cookie);
   assert.equal(final.data.participants.filter(p=>p.revealed_at).length,0);
-  assert.equal(final.data.participants.filter(p=>p.confirmed_at).length,12);
+  assert.equal(final.data.participants.filter(p=>p.confirmed_at).length,family.length);
   assert.equal((await request('/admin/participants',{action:'add',name:'Estephane'},admin.cookie)).status,403);
   assert.equal((await request('/admin/participants',{action:'add',name:'Pessoa nova'},admin.cookie)).status,403);
   assert.equal((await request('/admin/participants',{action:'add',name:'JÉSSICA RAFAELA'},admin.cookie)).status,403);
-  const updated=await request('/event');assert.equal(updated.data.participants.length,12);assert.equal(updated.data.pendingParticipants.length,12);
-  const restarted=await request('/login',{id:codes[1].id,code:codes[1].code});assert.equal(restarted.status,200);assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,12);
+  const updated=await request('/event');assert.equal(updated.data.participants.length,family.length);assert.equal(updated.data.pendingParticipants.length,family.length);
+  const restarted=await request('/login',{id:codes[1].id,code:codes[1].code});assert.equal(restarted.status,200);assert.equal(app.db.prepare('SELECT COUNT(*) AS n FROM pairs').get().n,family.length);
   assert.equal((await request('/admin/logout',{},admin.cookie)).status,200);
   assert.equal((await request('/admin/dashboard',undefined,admin.cookie)).status,401);
  }finally{app.server.close();app.db.close();}
  try{
   const reopened=createApp(config);
-  assert.equal(reopened.db.prepare('SELECT COUNT(*) AS n FROM participants').get().n,12);
+  assert.equal(reopened.db.prepare('SELECT COUNT(*) AS n FROM participants').get().n,family.length);
   assert.ok(reopened.db.prepare('SELECT COUNT(*) AS n FROM audit').get().n>0);
   reopened.server.close();reopened.db.close();
  }finally{rmSync(dir,{recursive:true,force:true});}

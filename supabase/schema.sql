@@ -14,11 +14,11 @@ create table if not exists familia_ferreira_2027.settings (
 insert into familia_ferreira_2027.settings(id,admin_code_hash)
  values(true,extensions.crypt(encode(extensions.gen_random_bytes(32),'hex'),extensions.gen_salt('bf',10))) on conflict do nothing;
 create table if not exists familia_ferreira_2027.participants (
- id smallint primary key check(id between 1 and 12), name text not null unique,
+ id smallint primary key check(id between 1 and 14), name text not null unique,
  code_hash text, confirmed_at timestamptz, revealed_at timestamptz
 );
 insert into familia_ferreira_2027.participants(id,name)
- select ordinality::smallint,name from unnest(array['Caíque Eduardo','Estephane','Jéssica Rafaela','Igor','Caio','Rafael','Iris Ferreira','Augusto','Lucas Rodrigo','Camila Dias','Jenifer','Erick']) with ordinality as p(name,ordinality)
+ select ordinality::smallint,name from unnest(array['Caíque Eduardo','Estephane','Jéssica Rafaela','Igor','Caio','Rafael','Iris Ferreira','Augusto','Lucas Rodrigo','Camila Dias','Jenifer','Erick','Patrícia','Noah']) with ordinality as p(name,ordinality)
  on conflict do nothing;
 create table if not exists familia_ferreira_2027.pairs (
  giver smallint primary key references familia_ferreira_2027.participants(id),
@@ -78,7 +78,7 @@ begin
  select started_at into v_at from familia_ferreira_2027.settings where id=true for update;
  if v_at is not null then return v_at;end if;
  select array_agg(id::integer order by id) into v_ids from familia_ferreira_2027.participants;
- if cardinality(v_ids)<>12 then raise exception 'A lista deve conter os 12 participantes.';end if;
+ if cardinality(v_ids)<>14 then raise exception 'A lista deve conter os 14 participantes.';end if;
  loop
   v_targets:=v_ids;
   for i in reverse cardinality(v_ids)..2 loop
@@ -217,7 +217,7 @@ begin
     insert into familia_ferreira_2027.audit(action) values('Sorteio reiniciado: resultados e sessões anteriores invalidados');
     return familia_ferreira_2027.reply(200,'{"ok":true}'::jsonb);
    end if;
-   if v_path='/admin/participants' then return familia_ferreira_2027.reply(403,jsonb_build_object('error','A lista é fixa: somente os 12 nomes informados pela família.'));end if;
+   if v_path='/admin/participants' then return familia_ferreira_2027.reply(403,jsonb_build_object('error','A lista é fixa: somente os 14 nomes informados pela família.'));end if;
   end if;
  end if;
  return familia_ferreira_2027.reply(404,jsonb_build_object('error','Operação não encontrada.'));
