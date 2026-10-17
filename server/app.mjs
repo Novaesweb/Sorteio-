@@ -128,7 +128,7 @@ export function createApp({ databasePath = './data/familia.sqlite', adminHash = 
       if (path.startsWith('/api/admin/')) {
         session(req, 'admin');
         if (req.method === 'GET' && path === '/api/admin/dashboard') return send(200, { participants:rows(), startedAt:started(), audit:db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 20').all() });
-        if (path === '/api/admin/results') fail(403,'O painel acompanha somente participação. Os nomes sorteados não são exibidos ao organizador.');
+        if (path === '/api/admin/results' && req.method==='GET') return send(200,db.prepare('SELECT a.id AS giverId,a.name AS giver,b.id AS receiverId,b.name AS receiver,a.revealed_at AS revealedAt FROM pairs p JOIN participants a ON a.id=p.giver JOIN participants b ON b.id=p.receiver ORDER BY a.id').all());
         if (req.method !== 'POST') fail(404, 'Operação não encontrada.');
         const input = await body(req);
         if (path === '/api/admin/codes') {

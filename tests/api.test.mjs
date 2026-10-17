@@ -55,9 +55,11 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal(dashboard.data.participants.filter(p=>p.confirmed_at).length,1);
   assert.equal(dashboard.data.participants.filter(p=>p.revealed_at).length,1);
   assert.ok(!JSON.stringify(dashboard.data).includes('code_hash'));
-  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
+  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,200);
   assert.ok(!JSON.stringify(dashboard.data).includes('receiver'));
   const full=app.db.prepare('SELECT a.name AS giver,b.name AS receiver FROM pairs p JOIN participants a ON a.id=p.giver JOIN participants b ON b.id=p.receiver').all();
+  const adminPairs=await request('/admin/results',undefined,admin.cookie);assert.equal(adminPairs.data.length,family.length);assert.deepEqual(adminPairs.data.map(p=>[p.giver,p.receiver]).sort(),full.map(p=>[p.giver,p.receiver]).sort());
+  assert.equal((await request('/admin/results')).status,401);
   assert.equal(full.length,family.length);assert.equal(new Set(full.map(p=>p.receiver)).size,family.length);
   // Every participant logs in and receives only their own assigned result.
   for(const c of codes.slice(1)){
@@ -77,7 +79,8 @@ test('fluxo completo, autorização, isolamento de resultados e persistência',a
   assert.equal((await request('/admin/reset',{confirmation:'INVALIDAR RESULTADOS',password:'wrong'},admin.cookie)).status,400);
   assert.equal((await request('/admin/reset',{confirmation:'INVALIDAR RESULTADOS',password},admin.cookie)).status,200);
   assert.equal((await request('/result',undefined,renewed.cookie)).status,401);
-  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,403);
+  assert.equal((await request('/admin/results',undefined,admin.cookie)).status,200);
+  assert.deepEqual((await request('/admin/results',undefined,admin.cookie)).data,[]);
   const final=await request('/admin/dashboard',undefined,admin.cookie);
   assert.equal(final.data.participants.filter(p=>p.revealed_at).length,0);
   assert.equal(final.data.participants.filter(p=>p.confirmed_at).length,family.length);

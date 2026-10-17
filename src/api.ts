@@ -19,3 +19,5 @@ export type AccessId = {id:number;name:string;code:string};
 
 // Revealing persists participation, so it must use POST.
 export const revealResult=()=>api<Result>('/reveal',{});
+
+export type AdminPair={giverId:number;giver:string;receiverId:number;receiver:string;revealedAt:string|null};

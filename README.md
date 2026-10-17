@@ -1,6 +1,6 @@
 # Família Ferreira e familiares · Ano Novo 2027
 
-Site da família com visual roxo, vermelho e branco, roleta, cadastro por nome e **ID individual**, e painel que acompanha apenas a participação. Presentes: **R$ 40,00 a R$ 70,00**.
+Site da família com visual roxo, vermelho e branco, roleta, cadastro por nome e **ID individual**, e painel que acompanha a participação e permite ao organizador consultar os pares. Presentes: **R$ 40,00 a R$ 70,00**.
 
 Repositório: https://github.com/Novaesweb/Sorteio-.git.
 
@@ -27,7 +27,7 @@ O painel permite gerar os IDs e mostra:
 - Contadores e estados, atualizados a cada cinco segundos.
 - Filtros **Falta girar** (aberto por padrão), **Já giraram** e **Todos**.
 
-**O painel não exibe quem cada pessoa tirou.** Não há consulta da lista de pares: `/api/admin/results` é bloqueado inclusive para sessões administrativas. A API do dashboard retorna somente estados e datas. Isso se refere ao painel do site; um proprietário com acesso direto ao banco Supabase ainda tem os poderes de administração do banco.
+**O organizador pode consultar todos os pares** na seção “Quem tirou quem”, após entrar em `/adm`. A rota `/api/admin/results` exige sessão administrativa. Participantes e visitantes não têm acesso. A API do dashboard retorna somente estados e datas. Isso se refere ao painel do site; um proprietário com acesso direto ao banco Supabase ainda tem os poderes de administração do banco.
 
 O primeiro acesso válido inicia o sorteio global automaticamente. O organizador pode abrir lembretes no WhatsApp e reiniciar com confirmação reforçada. O WhatsApp abre com o texto pronto; o organizador escolhe o contato e confirma o envio. O site não afirma ter enviado uma mensagem automaticamente.
 
@@ -90,7 +90,7 @@ Na Vercel, use Vite, Node 24.x, build `npm run build` e saída `dist`. A branch 
 - Tokens de sessão aleatórios de 256 bits, somente SHA-256 no banco. O proxy grava cookies HttpOnly/SameSite=Strict/Secure e não envia metadados internos de sessão à página.
 - Limite persistente de 60 tentativas por nome ou acesso administrativo em 15 minutos.
 - Cada consulta de resultado retorna apenas o resultado do nome autenticado pela sessão, nunca a lista completa. A entrada valida o ID individual vinculado ao nome.
-- Não há acesso a pares pela API administrativa.
+- A consulta de pares na API administrativa exige sessão de organizador.
 - Sorteio criptográfico Fisher–Yates com rejeição de autoatribuições. Restrições SQL impedem pares duplicados e autoatribuição.
 - O bloqueio da linha do evento e transações impedem sorteios globais conflitantes.
 - Histórico administrativo não contém IDs em texto nem nomes dos destinatários.
@@ -104,9 +104,9 @@ npm run build
 npm run check:live
 ```
 
-Os testes locais cobrem 1.000 sorteios, IDs individuais, rejeição de ID de outra pessoa, confirmações sem duplicação, consulta em outro celular, resultado estável, reinício e bloqueio de pares no painel e na API.
+Os testes locais cobrem 1.000 sorteios, IDs individuais, rejeição de ID de outra pessoa, confirmações sem duplicação, consulta em outro celular, resultado estável, reinício e controle de acesso aos pares na API.
 
-`tests/family-supabase.sql` verifica o Postgres real, inclusive os 14 logins com seus próprios IDs e a rejeição de ID cruzado, a negação da lista de pares ao administrador e 100 sorteios. Todas as alterações de teste ficam em uma transação com **ROLLBACK**. Os IDs desse arquivo são apenas de teste.
+`tests/family-supabase.sql` verifica o Postgres real, inclusive os 14 logins com seus próprios IDs e a rejeição de ID cruzado, a autorização da lista de pares somente ao administrador e 100 sorteios. Todas as alterações de teste ficam em uma transação com **ROLLBACK**. Os IDs desse arquivo são apenas de teste.
 
 `npm run check:live` verifica a Edge Function publicada, nomes públicos, autenticação administrativa, bloqueio da RPC direta com chave pública e o handler Vercel, sem mudar dados. O GitHub Actions executa testes, compilação e verificação da API real.
 
@@ -120,7 +120,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Node 24. Abra http://localhost:5173. O ambiente local usa SQLite em `data/`, separado do Supabase. A implementação local segue o mesmo modo de IDs individuais e painel sem pares.
+Node 24. Abra http://localhost:5173. O ambiente local usa SQLite em `data/`, separado do Supabase. A implementação local segue o mesmo modo de IDs individuais e painel com consulta restrita de pares.
 
 Arquivos principais:
 
@@ -138,7 +138,7 @@ Não publique `.env`, chaves privadas, tokens de sessão ou bancos locais. Na re
 A ação **Verificar site publicado na Vercel** confere a URL pública real, incluindo as rotas de login e painel administrativo. `/api/admin/dashboard` sem sessão deve retornar JSON 401, nunca uma página 404. O teste aguarda a publicação automática e não altera cadastros nem cria sessões.
 
 ### Participação automática e identidade visual
-O primeiro acesso com nome e ID individual válidos gera os 14 pares de uma vez, mesmo que os demais ainda não tenham entrado. A roleta revela automaticamente o resultado do participante. Os pares permanecem fixos. Quem já revelou deixa de aparecer no cadastro inicial e na roleta da página inicial; continua disponível em `/meu-resultado` para consulta com seu próprio ID. O painel acompanha somente os estados, sem acesso aos pares.
+O primeiro acesso com nome e ID individual válidos gera os 14 pares de uma vez, mesmo que os demais ainda não tenham entrado. A roleta revela automaticamente o resultado do participante. Os pares permanecem fixos. Quem já revelou deixa de aparecer no cadastro inicial e na roleta da página inicial; continua disponível em `/meu-resultado` para consulta com seu próprio ID. O painel acompanha os estados e oferece consulta de pares restrita ao organizador.
 
 Identidade Novaesweb: fundo preto, roxo, magenta, vermelho e textos claros. A marca fornecida está em `public/novaesweb.jpg`, com o crédito “Criado com amor por Novaesweb” no rodapé de todas as páginas.
 

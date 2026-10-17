@@ -183,7 +183,11 @@ begin
    select jsonb_agg(jsonb_build_object('id',id,'name',name,'confirmed_at',confirmed_at,'revealed_at',revealed_at,'has_code',case when code_hash is null then 0 else 1 end) order by id) into v_data from familia_ferreira_2027.participants;
    return familia_ferreira_2027.reply(200,jsonb_build_object('participants',v_data,'startedAt',v_settings.started_at,'audit',coalesce((select jsonb_agg(to_jsonb(a) order by a.id desc) from (select id,action,created_at from familia_ferreira_2027.audit order by id desc limit 20) a),'[]'::jsonb)));
   end if;
-  if v_path='/admin/results' then return familia_ferreira_2027.reply(403,jsonb_build_object('error','O painel acompanha somente participação. Os nomes sorteados não são exibidos ao organizador.'));end if;
+  if v_path='/admin/results' and v_method='GET' then
+   select coalesce(jsonb_agg(jsonb_build_object('giverId',a.id,'giver',a.name,'receiverId',b.id,'receiver',b.name,'revealedAt',a.revealed_at) order by a.id),'[]'::jsonb) into v_data
+   from familia_ferreira_2027.pairs p join familia_ferreira_2027.participants a on a.id=p.giver join familia_ferreira_2027.participants b on b.id=p.receiver;
+   return familia_ferreira_2027.reply(200,v_data);
+  end if;
   if v_method='POST' then
    if v_path='/admin/codes' then
     if v_input->>'id' is not null then
